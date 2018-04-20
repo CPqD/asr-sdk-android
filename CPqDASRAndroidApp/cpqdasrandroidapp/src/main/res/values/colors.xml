@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#FF4081</color>
+
+    <color name="colorMicrophoneBackgroundIdleGradientStartColor">#FF4040C0</color>
+    <color name="colorMicrophoneBackgroundIdleGradientEndColor">#FF404080</color>
+    <color name="colorMicrophoneBackgroundListeningGradientStartColor">#FFC04040</color>
+    <color name="colorMicrophoneBackgroundListeningGradientEndColor">#FF804040</color>
+    <color name="colorMicrophoneBackgroundRecognizingGradientStartColor">#FFC0C040</color>
+    <color name="colorMicrophoneBackgroundRecognizingGradientEndColor">#FF808040</color>
+</resources>

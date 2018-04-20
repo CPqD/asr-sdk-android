@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+
+    <size
+        android:width="@dimen/asr_activity_image_button_microphone_width"
+        android:height="@dimen/asr_activity_image_button_microphone_height" />
+
+    <gradient
+        android:endColor="@color/colorMicrophoneBackgroundIdleGradientEndColor"
+        android:gradientRadius="@dimen/microphone_background_gradient_radius"
+        android:startColor="@color/colorMicrophoneBackgroundIdleGradientStartColor"
+        android:type="radial" />
+
+</shape>

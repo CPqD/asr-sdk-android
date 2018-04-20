@@ -1,0 +1,18 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="br.com.cpqd.asr.android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!--
+    In the "application" element below, the "android:label" attribute has been
+    removed so it doesn't conflict with the "application/android:label"
+    attribute of the application that will use this library.
+    -->
+
+    <application
+        android:allowBackup="true"
+        android:supportsRtl="true" />
+
+</manifest>

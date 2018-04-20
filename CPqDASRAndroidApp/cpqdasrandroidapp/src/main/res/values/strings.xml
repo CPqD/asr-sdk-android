@@ -1,0 +1,18 @@
+<resources>
+
+    <string name="app_name">CPqD ASR App</string>
+
+    <string name="asr_settings_activity_title">CPqD ASR Settings</string>
+
+    <string name="asr_activity_image_button_microphone_content_description">Microphone</string>
+
+    <string name="asr_activity_text_view_microphone_instructions_idle">Tap to speak</string>
+    <string name="asr_activity_text_view_microphone_instructions_listening">Tap to stop</string>
+    <string name="asr_activity_text_view_microphone_instructions_recognizing">Recognizing…</string>
+    <string name="asr_activity_text_view_microphone_instructions_canceling">Canceling…</string>
+    <string name="asr_activity_text_view_microphone_instructions_connecting">Connecting…</string>
+
+    <string name="asr_menu_app_version">App version</string>
+    <string name="asr_menu_settings">Settings</string>
+
+</resources>
