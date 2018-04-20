@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context=".AsrActivity">
+
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@+id/asr_activity_image_button_microphone"
+        android:layout_marginBottom="@dimen/asr_activity_text_view_result_margin_bottom">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/asr_activity_text_view_result"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/asr_activity_text_view_result_margin_top"
+                android:gravity="center"
+                android:textAppearance="@android:style/TextAppearance.Medium" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <ImageButton
+        android:id="@+id/asr_activity_image_button_microphone"
+        android:layout_width="@dimen/asr_activity_image_button_microphone_width"
+        android:layout_height="@dimen/asr_activity_image_button_microphone_height"
+        android:layout_above="@+id/asr_activity_text_view_microphone_instructions"
+        android:layout_centerHorizontal="true"
+        android:background="@drawable/microphone_background_idle"
+        android:contentDescription="@string/asr_activity_image_button_microphone_content_description"
+        android:onClick="onClickMicrophone"
+        android:scaleType="center"
+        android:src="@drawable/microphone" />
+
+    <TextView
+        android:id="@+id/asr_activity_text_view_microphone_instructions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="@dimen/asr_activity_text_view_microphone_instructions_margin_bottom"
+        android:layout_marginTop="@dimen/asr_activity_text_view_microphone_instructions_margin_top"
+        android:text="@string/asr_activity_text_view_microphone_instructions_idle"
+        android:textAppearance="@android:style/TextAppearance.Small" />
+
+</RelativeLayout>
