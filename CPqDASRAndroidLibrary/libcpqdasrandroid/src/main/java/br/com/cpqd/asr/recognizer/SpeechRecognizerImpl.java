@@ -21,7 +21,6 @@ import android.os.HandlerThread;
 import android.os.Message;
 import android.util.Log;
 
-import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,6 +46,11 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
      * Log tag.
      */
     private static final String TAG = SpeechRecognizerImpl.class.getSimpleName();
+
+    /**
+     * Max timeout waiting for response from server.
+     */
+    private static final int MAX_RESPONSE_TIMEOUT = 10000;
 
     /**
      * State indicating the library is idle, waiting for requests.
@@ -89,54 +93,44 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
     public static final int MESSAGE_STOP = 1;
 
     /**
-     * Handler message code for indicating that the audio recording has stopped.
-     */
-    public static final int MESSAGE_ON_RECORDING_STOP = 2;
-
-    /**
      * Handler message code for indicating that a partial recognition result was received.
      */
-    public static final int MESSAGE_ON_PARTIAL_RESULT = 3;
+    public static final int MESSAGE_ON_PARTIAL_RESULT = 2;
 
     /**
      * Handler message code for indicating that the recognition result was received.
      */
-    public static final int MESSAGE_ON_RESULT = 4;
+    public static final int MESSAGE_ON_RESULT = 3;
 
     /**
      * Handler message code for indicating that an error was raised.
      */
-    public static final int MESSAGE_ON_ERROR = 5;
-
-    /**
-     * Handler message code for indicating that an audio packet was received.
-     */
-    public static final int MESSAGE_HANDLE_AUDIO_PACKET = 6;
+    public static final int MESSAGE_ON_ERROR = 4;
 
     /**
      * Handler message code for indicating if the connection finished.
      */
-    public static final int MESSAGE_ON_CREATE_SESSION = 7;
+    public static final int MESSAGE_ON_CREATE_SESSION = 6;
 
     /**
      * Handler message code for indicating if the connection finished.
      */
-    public static final int MESSAGE_ON_START_RECOGNITION = 8;
+    public static final int MESSAGE_ON_START_RECOGNITION = 7;
 
     /**
      * Handler message code for indicating the cancel recognition
      */
-    public static final int MESSAGE_ON_CANCEL_RECOGNITION = 9;
+    public static final int MESSAGE_ON_CANCEL_RECOGNITION = 8;
 
     /**
      * Handler message code for indicating the start input timers
      */
-    public static final int MESSAGE_ON_START_INPUT_TIMERS = 10;
+    public static final int MESSAGE_ON_START_INPUT_TIMERS = 9;
 
     /**
      * Handler message code for indicating the release session
      */
-    public static final int MESSAGE_ON_RELEASE_SESSION = 11;
+    public static final int MESSAGE_ON_RELEASE_SESSION = 10;
 
     /**
      * Thread that handles the connection to the server.
@@ -149,9 +143,9 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
     private final Handler mHandler;
 
     /**
-     * Lock object to start recognition
+     * Lock object to server response
      */
-    private final Object mStartRecogLock;
+    private final Object mSeverResponseLock;
 
     /**
      * Registered listener interfaces.
@@ -190,6 +184,11 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
     private AudioSource mAudio;
 
     /**
+     * Flag to know if server response.
+     */
+    private boolean mServerResponse;
+
+    /**
      * The recognition error.
      */
     private RecognitionError mError;
@@ -207,19 +206,21 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
      * @param context the Context reference.
      * @param builder the Builder object.
      */
-    SpeechRecognizerImpl(Context context, SpeechRecognizer.Builder builder) throws URISyntaxException, IOException, RecognitionException {
+    SpeechRecognizerImpl(Context context, SpeechRecognizer.Builder builder) throws URISyntaxException {
 
+        // Start the asr connection thread
         mAsrServerConnectionThread = new AsrServerConnectionThread(context, this,
                 builder.uri, builder.credentials, builder.maxSessionIdleSeconds, builder.userAgent);
         mAsrServerConnectionThread.start();
 
+        // Start the handler thread
         HandlerThread handlerThread = new HandlerThread("AsrHandlerThread");
         handlerThread.start();
         mHandler = new Handler(handlerThread.getLooper(), new CPqDASRHandlerCallback());
 
         mSentencesQueue = new LinkedBlockingQueue<>();
 
-        mStartRecogLock = new Object();
+        mSeverResponseLock = new Object();
 
         mState = STATE_IDLE;
 
@@ -233,11 +234,10 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
             mListeners.addAll(mBuilder.listeners);
         }
 
+        // Ask connection thread to establish connection.
         if (!builder.connectOnRecognize) {
-            // Ask connection thread to establish connection with given URL.
             Message message = mAsrServerConnectionThread.obtainMessage();
             message.arg1 = AsrServerConnectionThread.MESSAGE_CONNECT_TO_SERVER;
-            message.obj = mBuilder.uri;
             message.sendToTarget();
         }
     }
@@ -300,19 +300,6 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
                     listener.onError((RecognitionError) msg.obj);
                 }
 
-            } else if (msg.arg1 == MESSAGE_HANDLE_AUDIO_PACKET) {
-
-                // Send audio packet to connection thread.
-                if (mState == STATE_RECORDING) {
-                    Message message = mAsrServerConnectionThread.obtainMessage();
-                    message.arg1 = AsrServerConnectionThread.MESSAGE_HANDLE_AUDIO_PACKET;
-                    message.arg2 = msg.arg2;
-                    message.obj = msg.obj;
-                    message.sendToTarget();
-                } else {
-                    Log.i(TAG, "ignoring handle audio packet handler message");
-                }
-
             } else if (msg.arg1 == MESSAGE_ON_CREATE_SESSION) {
 
                 if (mState == STATE_WAITING_CREATE_SESSION) {
@@ -336,11 +323,21 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
                 // Notify callback listener of the start of audio recording.
                 if (mState == STATE_STARTING) {
 
+                    // Set the state to recording
+                    mState = STATE_RECORDING;
+
+                    // Set response from server to true
+                    mServerResponse = true;
+
+                    // Notify the listeners the server is listening
                     for (RecognitionListener listener : mListeners) {
                         listener.onListening();
                     }
 
-                    mState = STATE_RECORDING;
+                    // Notify the server response
+                    synchronized (mSeverResponseLock) {
+                        mSeverResponseLock.notifyAll();
+                    }
 
                 } else {
                     Log.i(TAG, "ignoring on recording start handle message");
@@ -349,7 +346,18 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
             } else if (msg.arg1 == MESSAGE_ON_CANCEL_RECOGNITION) {
 
                 if (mState == STATE_WAITING_CANCEL_RECOGNITION) {
+
+                    // Back state to idle
                     mState = STATE_IDLE;
+
+                    // Set response from server to true
+                    mServerResponse = true;
+
+                    // Notify the server response
+                    synchronized (mSeverResponseLock) {
+                        mSeverResponseLock.notifyAll();
+                    }
+
                 } else {
                     Log.i(TAG, "ignoring on cancel recognition message");
                 }
@@ -357,7 +365,18 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
             } else if (msg.arg1 == MESSAGE_ON_RELEASE_SESSION) {
 
                 if (mState == STATE_WAITING_RELEASE_SESSION) {
+
+                    // Back state to idle
                     mState = STATE_IDLE;
+
+                    // Set response from server to true
+                    mServerResponse = true;
+
+                    // Notify the server response
+                    synchronized (mSeverResponseLock) {
+                        mSeverResponseLock.notifyAll();
+                    }
+
                 } else {
                     Log.i(TAG, "ignoring on release session message");
                 }
@@ -372,12 +391,12 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
     }
 
     @Override
-    public void recognize(AudioSource audio, LanguageModelList lmList) {
+    public void recognize(AudioSource audio, LanguageModelList lmList) throws RecognitionException {
         recognize(audio, lmList, null);
     }
 
     @Override
-    public void recognize(AudioSource audio, LanguageModelList lmList, RecognitionConfig config) {
+    public void recognize(AudioSource audio, LanguageModelList lmList, RecognitionConfig config) throws RecognitionException {
 
         // Check if library is in expected state to accept message.
         if (mState != STATE_IDLE) {
@@ -387,6 +406,8 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
         mState = STATE_STARTING;
 
         mSentencesQueue.clear();
+
+        mServerResponse = false;
 
         mError = null;
 
@@ -408,8 +429,27 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
         // Connect to server session
         message = mAsrServerConnectionThread.obtainMessage();
         message.arg1 = AsrServerConnectionThread.MESSAGE_CONNECT_TO_SERVER;
-        message.obj = mBuilder.uri;
         message.sendToTarget();
+
+        // Check if is in the correct state
+        if (mState == STATE_STARTING) {
+            try {
+                synchronized (mSeverResponseLock) {
+                    mSeverResponseLock.wait(MAX_RESPONSE_TIMEOUT);
+                }
+            } catch (Exception e) {
+                // ignoring
+            }
+        }
+
+        if (!mServerResponse && mError == null) {
+            for (RecognitionListener listener : mListeners) {
+                listener.onError(new RecognitionError(RecognitionErrorCode.FAILURE, "Recognition operation timeout"));
+            }
+            throw new RecognitionException(RecognitionErrorCode.FAILURE, "Recognition timeout");
+        } else if (mError != null) {
+            throw new RecognitionException(mError);
+        }
     }
 
     @Override
@@ -419,16 +459,6 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
 
     @Override
     public List<RecognitionResult> waitRecognitionResult(int timeout) throws RecognitionException {
-
-        if (mState == STATE_STARTING) {
-            try {
-                synchronized (mStartRecogLock) {
-                    mStartRecogLock.wait(5000);
-                }
-            } catch (Exception e) {
-                // ignoring
-            }
-        }
 
         // Server not listening
         if (mReaderTask == null || mReaderTask.isIdle() || mReaderTask.isCancelled()) {
@@ -484,9 +514,13 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
     }
 
     @Override
-    public void close() {
+    public void close() throws RecognitionException {
 
         mState = STATE_WAITING_RELEASE_SESSION;
+
+        mServerResponse = false;
+
+        mError = null;
 
         // Cancel the audio recorder thread.
         if (mReaderTask != null) {
@@ -497,10 +531,30 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
         Message message = mAsrServerConnectionThread.obtainMessage();
         message.arg1 = AsrServerConnectionThread.MESSAGE_RELEASE_SESSION;
         message.sendToTarget();
+
+        // Check if is in the correct state
+        if (mState == STATE_WAITING_RELEASE_SESSION) {
+            try {
+                synchronized (mSeverResponseLock) {
+                    mSeverResponseLock.wait(MAX_RESPONSE_TIMEOUT);
+                }
+            } catch (Exception e) {
+                // ignoring
+            }
+        }
+
+        if (!mServerResponse && mError == null) {
+            for (RecognitionListener listener : mListeners) {
+                listener.onError(new RecognitionError(RecognitionErrorCode.FAILURE, "Close operation timeout"));
+            }
+            throw new RecognitionException(RecognitionErrorCode.FAILURE, "Close timeout");
+        } else if (mError != null) {
+            throw new RecognitionException(mError);
+        }
     }
 
     @Override
-    public void cancelRecognition() {
+    public void cancelRecognition() throws RecognitionException {
 
         // Check if library is in expected state to accept message.
         if (mState != STATE_RECORDING && mState != STATE_WAITING_RECOGNITION) {
@@ -508,6 +562,10 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
         }
 
         mState = STATE_WAITING_CANCEL_RECOGNITION;
+
+        mServerResponse = false;
+
+        mError = null;
 
         // Ask connection thread to cancel recognition.
         Message message = mAsrServerConnectionThread.obtainMessage();
@@ -517,6 +575,116 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
         // Cancel the audio recorder thread.
         if (mReaderTask != null) {
             mReaderTask.cancel();
+        }
+
+        // Check if is in the correct state
+        if (mState == STATE_WAITING_CANCEL_RECOGNITION) {
+            try {
+                synchronized (mSeverResponseLock) {
+                    mSeverResponseLock.wait(MAX_RESPONSE_TIMEOUT);
+                }
+            } catch (Exception e) {
+                // ignoring
+            }
+        }
+
+        if (!mServerResponse && mError == null) {
+            for (RecognitionListener listener : mListeners) {
+                listener.onError(new RecognitionError(RecognitionErrorCode.FAILURE, "Cancel recognition operation timeout"));
+            }
+            throw new RecognitionException(RecognitionErrorCode.FAILURE, "Cancel recognition timeout");
+        } else if (mError != null) {
+            throw new RecognitionException(mError);
+        }
+    }
+
+    @Override
+    public void onListening() {
+        Log.d(TAG, "[onListening]");
+
+        // Change state of the reader task
+        mReaderTask.readerStatus = ReaderTaskStatus.RUNNING;
+
+        // Start the reader task
+        new Thread(mReaderTask).start();
+    }
+
+    @Override
+    public void onSpeechStart(Integer time) {
+        Log.d(TAG, "[onSpeechStart] " + time);
+    }
+
+    @Override
+    public void onSpeechStop(Integer time) {
+        Log.d(TAG, "[onSpeechStop] " + time);
+    }
+
+    @Override
+    public void onPartialRecognitionResult(PartialRecognitionResult result) {
+        Log.d(TAG, "[onPartialRecognitionResult] " + result.toString());
+    }
+
+    @Override
+    public void onRecognitionResult(RecognitionResult result) {
+
+        if (!mSentencesQueue.offer(result)) {
+            Log.w(TAG, "[onRecognitionResult] Messsage discarded, sentences queue is full");
+        }
+
+        // Received final result of the last segment
+        if (result.isLastSpeechSegment()) {
+
+            // Back the state to idle
+            mState = STATE_IDLE;
+
+            // Finalize the reader task
+            if (mReaderTask != null) {
+                mReaderTask.finish();
+            }
+
+            // Notify the sentence queue
+            synchronized (mSentencesQueue) {
+                mSentencesQueue.notifyAll();
+            }
+
+            // The recognition is over. close the session
+            if (mBuilder.autoClose) {
+                try {
+                    close();
+                } catch (RecognitionException e) {
+                    //ignoring
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onError(RecognitionError error) {
+
+        // Back the state to idle
+        mState = STATE_IDLE;
+
+        // Set the error
+        mError = error;
+
+        // Send message to the connection thread
+        Message message = mAsrServerConnectionThread.obtainMessage();
+        message.arg1 = AsrServerConnectionThread.MESSAGE_ON_CPQD_ASR_LIBRARY_ERROR;
+        message.sendToTarget();
+
+        // Cancel the reader thread.
+        if (mReaderTask != null) {
+            mReaderTask.cancel();
+        }
+
+        // Notify the server response
+        synchronized (mSeverResponseLock) {
+            mSeverResponseLock.notifyAll();
+        }
+
+        // Notify the sentence queue
+        synchronized (mSentencesQueue) {
+            mSentencesQueue.notifyAll();
         }
     }
 
@@ -614,97 +782,6 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
                     //ignoring
                 }
             }
-        }
-    }
-
-    @Override
-    public void onListening() {
-        Log.d(TAG, "[onListening]");
-
-        // Change state of the reader task
-        mReaderTask.readerStatus = ReaderTaskStatus.RUNNING;
-
-        // Start the reader task
-        new Thread(mReaderTask).start();
-
-        // Notify the recognition started
-        synchronized (mStartRecogLock) {
-            mStartRecogLock.notifyAll();
-        }
-    }
-
-    @Override
-    public void onSpeechStart(Integer time) {
-        Log.d(TAG, "[onSpeechStart] " + time);
-    }
-
-    @Override
-    public void onSpeechStop(Integer time) {
-        Log.d(TAG, "[onSpeechStop] " + time);
-    }
-
-    @Override
-    public void onPartialRecognitionResult(PartialRecognitionResult result) {
-        Log.d(TAG, "[onPartialRecognitionResult] " + result.toString());
-    }
-
-    @Override
-    public void onRecognitionResult(RecognitionResult result) {
-
-        if (!mSentencesQueue.offer(result)) {
-            Log.w(TAG, "[onRecognitionResult] Messsage discarded, sentences queue is full");
-        }
-
-        // Received final result of the last segment
-        if (result.isLastSpeechSegment()) {
-
-            // Back the state to idle
-            mState = STATE_IDLE;
-
-            // Finalize the reader task
-            if (mReaderTask != null) {
-                mReaderTask.finish();
-            }
-
-            // Notify the sentence queue
-            synchronized (mSentencesQueue) {
-                mSentencesQueue.notifyAll();
-            }
-
-            // The recognition is over. close the session
-            if (mBuilder.autoClose) {
-                close();
-            }
-        }
-    }
-
-    @Override
-    public void onError(RecognitionError error) {
-
-        // Back the state to idle
-        mState = STATE_IDLE;
-
-        // Set the error
-        mError = error;
-
-        // Send message to the connection thread
-        Message message = mAsrServerConnectionThread.obtainMessage();
-        message.arg1 = AsrServerConnectionThread.MESSAGE_ON_CPQD_ASR_LIBRARY_ERROR;
-        message.sendToTarget();
-
-        // Cancel the reader thread.
-        if (mReaderTask != null) {
-            mReaderTask.cancel();
-        }
-
-        // Notify the sentence queue
-        synchronized (mSentencesQueue) {
-            mSentencesQueue.notifyAll();
-        }
-
-        // The recognition is over. close the session
-        if (mBuilder.autoClose) {
-            close();
         }
     }
 }

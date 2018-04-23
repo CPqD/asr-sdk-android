@@ -83,6 +83,7 @@ public class AsrActivity extends AppCompatActivity {
             @Override
             public boolean onLongClick(View v) {
                 try {
+                    showText("Cancel recognition");
                     recognizer.cancelRecognition();
                 } catch (Exception e) {
                     Log.e(TAG, e.getMessage(), e);
@@ -172,6 +173,8 @@ public class AsrActivity extends AppCompatActivity {
         mHandler.post(new Runnable() {
             @Override
             public void run() {
+
+                showText("");
 
                 // Language model (as installed in the server environment)
                 LanguageModelList lmList = LanguageModelList.builder().addFromURI("builtin:slm/general").build();

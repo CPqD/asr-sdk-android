@@ -34,7 +34,7 @@ public interface SpeechRecognizerInterface {
      *
      * @throws IOException some sort of I/O exception has ocurred.
      */
-    void close() throws IOException;
+    void close() throws IOException, RecognitionException;
 
     /**
      * Cancels the current recognition, closing the audio source.

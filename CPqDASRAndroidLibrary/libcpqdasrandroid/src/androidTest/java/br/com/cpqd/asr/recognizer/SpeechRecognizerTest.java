@@ -22,7 +22,6 @@ import android.support.test.runner.AndroidJUnit4;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
@@ -74,7 +73,7 @@ public class SpeechRecognizerTest {
             try {
                 if (recognizer != null)
                     recognizer.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 //ignore
             }
         }
@@ -101,7 +100,7 @@ public class SpeechRecognizerTest {
             try {
                 if (recognizer != null)
                     recognizer.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 //ignore
             }
         }
@@ -129,7 +128,7 @@ public class SpeechRecognizerTest {
             try {
                 if (recognizer != null)
                     recognizer.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 //ignore
             }
         }
@@ -156,7 +155,7 @@ public class SpeechRecognizerTest {
             try {
                 if (recognizer != null)
                     recognizer.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 //ignore
             }
         }
@@ -205,7 +204,7 @@ public class SpeechRecognizerTest {
             try {
                 if (recognizer != null)
                     recognizer.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 // ignore
             }
         }
@@ -249,7 +248,7 @@ public class SpeechRecognizerTest {
             try {
                 if (recognizer != null)
                     recognizer.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 // ignore
             }
         }
@@ -297,7 +296,7 @@ public class SpeechRecognizerTest {
             try {
                 if (recognizer != null)
                     recognizer.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 // ignore
             }
         }
@@ -340,7 +339,7 @@ public class SpeechRecognizerTest {
             try {
                 if (recognizer != null)
                     recognizer.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 // ignore
             }
         }
@@ -437,7 +436,7 @@ public class SpeechRecognizerTest {
             try {
                 if (recognizer != null)
                     recognizer.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 // ignore
             }
         }
@@ -461,7 +460,7 @@ public class SpeechRecognizerTest {
             try {
                 if (recognizer != null)
                     recognizer.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 // ignore
             }
         }
@@ -486,7 +485,7 @@ public class SpeechRecognizerTest {
             try {
                 if (recognizer != null)
                     recognizer.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 // ignore
             }
         }
@@ -517,7 +516,7 @@ public class SpeechRecognizerTest {
             try {
                 if (recognizer != null)
                     recognizer.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 // ignore
             }
         }
@@ -571,7 +570,7 @@ public class SpeechRecognizerTest {
             try {
                 if (recognizer != null)
                     recognizer.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 // ignore
             }
         }
@@ -635,7 +634,7 @@ public class SpeechRecognizerTest {
             try {
                 if (recognizer != null)
                     recognizer.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 // ignore
             }
         }
@@ -699,7 +698,7 @@ public class SpeechRecognizerTest {
             try {
                 if (recognizer != null)
                     recognizer.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 // ignore
             }
         }
@@ -763,7 +762,7 @@ public class SpeechRecognizerTest {
             try {
                 if (recognizer != null)
                     recognizer.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 // ignore
             }
         }
@@ -825,7 +824,7 @@ public class SpeechRecognizerTest {
             try {
                 if (recognizer != null)
                     recognizer.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 // ignore
             }
         }
@@ -853,7 +852,7 @@ public class SpeechRecognizerTest {
             try {
                 if (recognizer != null)
                     recognizer.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 // ignore
             }
         }
