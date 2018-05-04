@@ -139,7 +139,6 @@ public class SpeechRecognizer {
          * @return the recognizer instance.
          */
         public SpeechRecognizerInterface build(Context context) throws URISyntaxException, IOException, RecognitionException {
-            //TODO
             return new SpeechRecognizerImpl(context, this);
         }
 

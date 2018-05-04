@@ -74,19 +74,9 @@ class AsrMessage {
     static final String METHOD_START_RECOGNITION = "START_RECOGNITION";
 
     /**
-     * Method for stopping an ongoing recognition.
-     */
-    static final String METHOD_STOP_RECOGNITION = "STOP_RECOGNITION";
-
-    /**
      * Method for sending audio samples to server.
      */
     static final String METHOD_SEND_AUDIO = "SEND_AUDIO";
-
-    /**
-     * Method for getting current ASR session status.
-     */
-    static final String METHOD_GET_SESSION_STATUS = "GET_SESSION_STATUS";
 
     /**
      * Method for releasing an ASR session, after recognition is done.
@@ -346,9 +336,7 @@ class AsrMessage {
         return method.contentEquals(METHOD_CANCEL_RECOGNITION)
                 || method.contentEquals(METHOD_CREATE_SESSION)
                 || method.contentEquals(METHOD_START_RECOGNITION)
-                || method.contentEquals(METHOD_STOP_RECOGNITION)
                 || method.contentEquals(METHOD_SEND_AUDIO)
-                || method.contentEquals(METHOD_GET_SESSION_STATUS)
                 || method.contentEquals(METHOD_RELEASE_SESSION)
                 || method.contentEquals(METHOD_RECOGNITION_RESULT)
                 || method.contentEquals(METHOD_RESPONSE)

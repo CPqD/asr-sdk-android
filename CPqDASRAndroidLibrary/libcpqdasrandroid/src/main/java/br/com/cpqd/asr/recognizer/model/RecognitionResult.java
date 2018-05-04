@@ -1,12 +1,12 @@
 /*******************************************************************************
  * Copyright 2018 CPqD. All Rights Reserved.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License.  You may obtain a copy
  * of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -20,81 +20,103 @@ import java.util.List;
 
 /**
  * Represents the final result of the recognition process.
- *
  */
 public class RecognitionResult {
 
-	/** the recognition result code. */
-	private RecognitionResultCode resultCode;
+    /**
+     * the recognition result code.
+     */
+    private RecognitionResultCode resultCode;
 
-	/** the speech segment index. */
-	private int speechSegmentIndex;
+    /**
+     * the speech segment index.
+     */
+    private int speechSegmentIndex;
 
-	/**
-	 * indicates if this is the last recognized segment.
-	 */
-	private boolean lastSpeechSegment;
+    /**
+     * indicates if this is the last recognized segment.
+     */
+    private boolean lastSpeechSegment;
 
-	/** the audio position when the speech start was detected (in secs). */
-	private float segmentStartTime;
+    /**
+     * indicates if this is the final recognized result.
+     */
+    private boolean finalResult;
 
-	/** the audio position when the speech stop was detected (in secs). */
-	private float segmentEndTime;
+    /**
+     * the audio position when the speech start was detected (in secs).
+     */
+    private float segmentStartTime;
 
-	/** the list of recognition result alternative sentences. */
-	private List<RecognitionAlternative> alternatives = new ArrayList<>();
+    /**
+     * the audio position when the speech stop was detected (in secs).
+     */
+    private float segmentEndTime;
 
-	public RecognitionResultCode getResultCode() {
-		return resultCode;
-	}
+    /**
+     * the list of recognition result alternative sentences.
+     */
+    private List<RecognitionAlternative> alternatives = new ArrayList<>();
 
-	public void setResultCode(RecognitionResultCode resultCode) {
-		this.resultCode = resultCode;
-	}
+    public RecognitionResultCode getResultCode() {
+        return resultCode;
+    }
 
-	public int getSpeechSegmentIndex() {
-		return speechSegmentIndex;
-	}
+    public void setResultCode(RecognitionResultCode resultCode) {
+        this.resultCode = resultCode;
+    }
 
-	public void setSpeechSegmentIndex(int speechSegmentIndex) {
-		this.speechSegmentIndex = speechSegmentIndex;
-	}
+    public int getSpeechSegmentIndex() {
+        return speechSegmentIndex;
+    }
 
-	public boolean isLastSpeechSegment() {
-		return lastSpeechSegment;
-	}
+    public void setSpeechSegmentIndex(int speechSegmentIndex) {
+        this.speechSegmentIndex = speechSegmentIndex;
+    }
 
-	public void setLastSpeechSegment(boolean lastSpeechSegment) {
-		this.lastSpeechSegment = lastSpeechSegment;
-	}
+    public boolean isLastSpeechSegment() {
+        return lastSpeechSegment;
+    }
 
-	public float getSegmentStartTime() {
-		return segmentStartTime;
-	}
+    public void setLastSpeechSegment(boolean lastSpeechSegment) {
+        this.lastSpeechSegment = lastSpeechSegment;
+    }
 
-	public void setSegmentStartTime(float segmentStartTime) {
-		this.segmentStartTime = segmentStartTime;
-	}
+    public boolean isFinalResult() {
+        return finalResult;
+    }
 
-	public float getSegmentEndTime() {
-		return segmentEndTime;
-	}
+    public void setFinalResult(boolean finalResult) {
+        this.finalResult = finalResult;
+    }
 
-	public void setSegmentEndTime(float segmentEndTime) {
-		this.segmentEndTime = segmentEndTime;
-	}
+    public float getSegmentStartTime() {
+        return segmentStartTime;
+    }
 
-	public List<RecognitionAlternative> getAlternatives() {
-		return alternatives;
-	}
+    public void setSegmentStartTime(float segmentStartTime) {
+        this.segmentStartTime = segmentStartTime;
+    }
 
-	public void setAlternatives(List<RecognitionAlternative> alternatives) {
-		this.alternatives = alternatives;
-	}
+    public float getSegmentEndTime() {
+        return segmentEndTime;
+    }
 
-	@Override
-	public String toString() {
-		return "[code=" + resultCode + ", alternatives=" + alternatives + "]";
-	}
+    public void setSegmentEndTime(float segmentEndTime) {
+        this.segmentEndTime = segmentEndTime;
+    }
+
+    public List<RecognitionAlternative> getAlternatives() {
+        return alternatives;
+    }
+
+    public void setAlternatives(List<RecognitionAlternative> alternatives) {
+        this.alternatives = alternatives;
+    }
+
+    @Override
+    public String toString() {
+        return "[code=" + resultCode + ", alternatives=" + alternatives + "]";
+    }
 
 }

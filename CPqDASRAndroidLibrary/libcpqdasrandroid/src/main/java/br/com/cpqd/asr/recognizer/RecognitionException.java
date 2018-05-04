@@ -23,8 +23,6 @@ import br.com.cpqd.asr.recognizer.model.RecognitionErrorCode;
  */
 public class RecognitionException extends Exception {
 
-    private static final long serialVersionUID = 1685812683040103728L;
-
     /**
      * the recognition error code.
      */

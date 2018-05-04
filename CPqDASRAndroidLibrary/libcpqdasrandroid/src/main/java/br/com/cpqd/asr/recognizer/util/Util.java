@@ -81,6 +81,7 @@ public class Util {
             RecognitionResult recognitionResult = new RecognitionResult();
             recognitionResult.setSpeechSegmentIndex(jsonObject.optInt("segment_index"));
             recognitionResult.setLastSpeechSegment(jsonObject.optBoolean("last_segment"));
+            recognitionResult.setFinalResult(jsonObject.optBoolean("final_result"));
             recognitionResult.setSegmentStartTime(jsonObject.optLong("start_time"));
             recognitionResult.setSegmentEndTime(jsonObject.optLong("end_time"));
             recognitionResult.setResultCode(RecognitionResultCode.valueOf(jsonObject.optString("result_status")));

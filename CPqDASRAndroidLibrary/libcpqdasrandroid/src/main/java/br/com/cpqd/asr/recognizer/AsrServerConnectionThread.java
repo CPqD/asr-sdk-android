@@ -59,13 +59,14 @@ import javax.websocket.Session;
 import br.com.cpqd.asr.recognizer.model.RecognitionConfig;
 import br.com.cpqd.asr.recognizer.model.RecognitionError;
 import br.com.cpqd.asr.recognizer.model.RecognitionErrorCode;
+import br.com.cpqd.asr.recognizer.model.RecognitionResult;
 import br.com.cpqd.asr.recognizer.util.Constants;
 import br.com.cpqd.asr.recognizer.util.Util;
 
 /**
  * Thread that manages the connection to the ASR server and exchanges messages with it.
  */
-public class AsrServerConnectionThread extends AbstractMessagingThread {
+class AsrServerConnectionThread extends AbstractMessagingThread {
 
     /**
      * Log tag.
@@ -211,7 +212,6 @@ public class AsrServerConnectionThread extends AbstractMessagingThread {
      */
     private int mConnectionState;
 
-
     /**
      * User agent.
      */
@@ -267,16 +267,14 @@ public class AsrServerConnectionThread extends AbstractMessagingThread {
     private final LibraryErrorCloseReason mLibraryErrorCloseReason;
 
     /**
-     * Reference to Context.
+     * The server URI
      */
-    private Context mContext;
+    private URI mServerURI;
 
     /**
      * Reference to SpeechRecognizerImpl
      */
     private SpeechRecognizerImpl mRecognizer;
-
-    private URI mServerURI;
 
     /**
      * Sets up object initial state.
@@ -294,8 +292,6 @@ public class AsrServerConnectionThread extends AbstractMessagingThread {
                 && !serverURI.getScheme().toLowerCase().startsWith("wss")) {
             throw new URISyntaxException("Invalid Server URI", serverURI.toString());
         }
-
-        mContext = context;
 
         mRecognizer = recognizer;
 
@@ -324,7 +320,7 @@ public class AsrServerConnectionThread extends AbstractMessagingThread {
 
                 // Load CAs from an InputStream
                 Certificate ca;
-                InputStream caIs = mContext.getAssets().open("GlobalSignRootCA.pem");
+                InputStream caIs = context.getAssets().open("GlobalSignRootCA.pem");
 
                 // noinspection TryFinallyCanBeTryWithResources
                 try {
@@ -818,11 +814,10 @@ public class AsrServerConnectionThread extends AbstractMessagingThread {
             // The ASR message is a recognition result.
             //
             // If result is partial, send partial result message to main handler.
-            // If result is not partial, i.e. is final,
-            //     if thread state is streaming audio, send stop message to main handler, then
-            //     send final result message to main handler, then
-            //     send release session ASR message to server, then
-            //     change thread state to waiting release session.
+            // If result is final, send final result message to main handler.
+            //      Final recognition result
+            //      RECOGNIZED, NO_MATCH, NO_INPUT_TIMEOUT, MAX_SPEECH,
+            //      NO_SPEECH, EARLY_SPEECH, RECOGNITION_TIMEOUT, FAILURE
 
             if (mConnectionState == CONNECTION_STATE_STREAMING_AUDIO || mConnectionState == CONNECTION_STATE_WAITING_RECOGNITION_RESULT) {
 
@@ -838,102 +833,27 @@ public class AsrServerConnectionThread extends AbstractMessagingThread {
                         result = null;
                     }
 
-                    if (resultStatusHeaderField.contentEquals("RECOGNIZED")) {
+                    RecognitionResult recognitionResult = Util.getRecogResult(result);
+
+                    if (recognitionResult != null && recognitionResult.isFinalResult()) {
+
+                        // back state to idle if is the last segment
+                        if (recognitionResult.isLastSpeechSegment()) {
+                            mConnectionState = CONNECTION_STATE_IDLE;
+                        }
 
                         Message message = mRecognizer.obtainMessage();
                         message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_RESULT;
-                        message.obj = Util.getRecogResult(result);
+                        message.obj = recognitionResult;
                         message.sendToTarget();
 
-                        mConnectionState = CONNECTION_STATE_IDLE;
-
-                    } else if (resultStatusHeaderField.contentEquals("PROCESSING")) {
+                    } else {
 
                         Message message = mRecognizer.obtainMessage();
                         message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_PARTIAL_RESULT;
                         message.obj = Util.getPartialRecogResult(result);
                         message.sendToTarget();
 
-                    } else if (resultStatusHeaderField.contentEquals("NO_MATCH")) {
-
-                        Message message = mRecognizer.obtainMessage();
-                        message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_ERROR;
-                        message.obj = new RecognitionError(RecognitionErrorCode.FAILURE, "No match");
-                        message.sendToTarget();
-
-                        mConnectionState = CONNECTION_STATE_IDLE;
-
-                    } else if (resultStatusHeaderField.contentEquals("NO_INPUT_TIMEOUT")) {
-
-                        Message message = mRecognizer.obtainMessage();
-                        message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_ERROR;
-                        message.obj = new RecognitionError(RecognitionErrorCode.FAILURE, "No input timeout");
-                        message.sendToTarget();
-
-                        mConnectionState = CONNECTION_STATE_IDLE;
-
-                    } else if (resultStatusHeaderField.contentEquals("MAX_SPEECH")) {
-
-                        Message message = mRecognizer.obtainMessage();
-                        message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_ERROR;
-                        message.obj = new RecognitionError(RecognitionErrorCode.FAILURE, "Max speech");
-                        message.sendToTarget();
-
-                        mConnectionState = CONNECTION_STATE_IDLE;
-
-                    } else if (resultStatusHeaderField.contentEquals("EARLY_SPEECH")) {
-
-                        Message message = mRecognizer.obtainMessage();
-                        message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_ERROR;
-                        message.obj = new RecognitionError(RecognitionErrorCode.FAILURE, "Early speech");
-                        message.sendToTarget();
-
-                        mConnectionState = CONNECTION_STATE_IDLE;
-
-                    } else if (resultStatusHeaderField.contentEquals("RECOGNITION_TIMEOUT")) {
-
-                        Message message = mRecognizer.obtainMessage();
-                        message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_ERROR;
-                        message.obj = new RecognitionError(RecognitionErrorCode.FAILURE, "Recognition Timeout");
-                        message.sendToTarget();
-
-                        mConnectionState = CONNECTION_STATE_IDLE;
-
-                    } else if (resultStatusHeaderField.contentEquals("NO_SPEECH")) {
-
-                        Message message = mRecognizer.obtainMessage();
-                        message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_ERROR;
-                        message.obj = new RecognitionError(RecognitionErrorCode.FAILURE, "No speech");
-                        message.sendToTarget();
-
-                        mConnectionState = CONNECTION_STATE_IDLE;
-
-                    } else if (resultStatusHeaderField.contentEquals("CANCELED")) {
-
-                        Message message = mRecognizer.obtainMessage();
-                        message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_ERROR;
-                        message.obj = new RecognitionError(RecognitionErrorCode.FAILURE, "Canceled");
-                        message.sendToTarget();
-
-                        mConnectionState = CONNECTION_STATE_IDLE;
-
-                    } else if (resultStatusHeaderField.contentEquals("FAILURE")) {
-
-                        Message message = mRecognizer.obtainMessage();
-                        message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_ERROR;
-                        message.obj = new RecognitionError(RecognitionErrorCode.FAILURE, "Failure");
-                        message.sendToTarget();
-
-                        mConnectionState = CONNECTION_STATE_IDLE;
-
-                    } else {
-
-                        Message message = mRecognizer.obtainMessage();
-                        message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_ERROR;
-                        message.obj = new RecognitionError(RecognitionErrorCode.FAILURE, "Internal library error");
-                        message.sendToTarget();
-
-                        mConnectionState = CONNECTION_STATE_IDLE;
                     }
 
                 } else {
@@ -1077,9 +997,12 @@ public class AsrServerConnectionThread extends AbstractMessagingThread {
 
         } else if (msg.arg1 == MESSAGE_ON_CPQD_ASR_LIBRARY_ERROR) {
 
-            // Remove network timeout and reset thread state.
-
+            // Remove network timeout.
             removeMessages(WHAT_NETWORK_TIMEOUT);
+
+            if (mConnectionState != CONNECTION_STATE_DISCONNECTED) {
+                mConnectionState = CONNECTION_STATE_IDLE;
+            }
 
         } else if (msg.arg1 == MESSAGE_START_INPUT_TIMERS) {
 

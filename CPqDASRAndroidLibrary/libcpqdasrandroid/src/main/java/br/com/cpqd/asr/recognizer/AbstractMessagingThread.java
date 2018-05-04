@@ -28,7 +28,7 @@ import android.support.annotation.NonNull;
  * <p>Subclasses are expected to implement {@link Handler.Callback},
  * that is, how received messages should be interpreted.</p>
  */
-public abstract class AbstractMessagingThread extends HandlerThread implements Handler.Callback {
+abstract class AbstractMessagingThread extends HandlerThread implements Handler.Callback {
 
     private Handler mHandler;
 

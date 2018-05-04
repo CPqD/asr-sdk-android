@@ -40,7 +40,7 @@ import br.com.cpqd.asr.recognizer.util.Util;
 /**
  * Class that implements the library API.
  */
-public class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionListener {
+class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionListener {
 
     /**
      * Log tag.
@@ -454,7 +454,7 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
 
     @Override
     public List<RecognitionResult> waitRecognitionResult() throws RecognitionException {
-        return waitRecognitionResult(mBuilder.maxWaitSeconds * 1000);
+        return waitRecognitionResult(mBuilder.maxWaitSeconds);
     }
 
     @Override
@@ -462,13 +462,16 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
 
         // Server not listening
         if (mReaderTask == null || mReaderTask.isIdle() || mReaderTask.isCancelled()) {
-            return new ArrayList<>(0);
+            return new ArrayList<>();
         }
 
         if (mReaderTask.isRunning()) {
+
             // se o audio está sendo enviado, bloqueia a thread aguardando o fim do processo
             while (mReaderTask.isRunning()) {
                 try {
+
+                    //noinspection SynchronizeOnNonFinalField
                     synchronized (mAudio) {
                         mAudio.wait(3000);
                     }
@@ -479,7 +482,7 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
 
             if (mReaderTask.isCancelled()) {
                 // se tarefa foi cancelada, devolve resultado vazio
-                return new ArrayList<>(0);
+                return new ArrayList<>();
             }
         }
 
@@ -487,7 +490,7 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
             // se o servidor está processando, aguarda o recebimento do resultado
             try {
                 synchronized (mSentencesQueue) {
-                    mSentencesQueue.wait(timeout);
+                    mSentencesQueue.wait(timeout * 1000);
                 }
             } catch (InterruptedException e) {
                 // ignoring
@@ -496,9 +499,16 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
 
         try {
             if (mSentencesQueue.size() == 0 && mError == null) {
+
+                // Send error message to the connection thread
+                Message message = mAsrServerConnectionThread.obtainMessage();
+                message.arg1 = AsrServerConnectionThread.MESSAGE_ON_CPQD_ASR_LIBRARY_ERROR;
+                message.sendToTarget();
+
                 for (RecognitionListener listener : mListeners) {
                     listener.onError(new RecognitionError(RecognitionErrorCode.FAILURE, "Recognition timeout"));
                 }
+
                 throw new RecognitionException(RecognitionErrorCode.FAILURE, "Recognition timeout");
             } else if (mError != null) {
                 throw new RecognitionException(mError);
@@ -544,9 +554,16 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
         }
 
         if (!mServerResponse && mError == null) {
+
+            // Send error message to the connection thread
+            message = mAsrServerConnectionThread.obtainMessage();
+            message.arg1 = AsrServerConnectionThread.MESSAGE_ON_CPQD_ASR_LIBRARY_ERROR;
+            message.sendToTarget();
+
             for (RecognitionListener listener : mListeners) {
                 listener.onError(new RecognitionError(RecognitionErrorCode.FAILURE, "Close operation timeout"));
             }
+
             throw new RecognitionException(RecognitionErrorCode.FAILURE, "Close timeout");
         } else if (mError != null) {
             throw new RecognitionException(mError);
@@ -589,9 +606,16 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
         }
 
         if (!mServerResponse && mError == null) {
+
+            // Send error message to the connection thread
+            message = mAsrServerConnectionThread.obtainMessage();
+            message.arg1 = AsrServerConnectionThread.MESSAGE_ON_CPQD_ASR_LIBRARY_ERROR;
+            message.sendToTarget();
+
             for (RecognitionListener listener : mListeners) {
                 listener.onError(new RecognitionError(RecognitionErrorCode.FAILURE, "Cancel recognition operation timeout"));
             }
+
             throw new RecognitionException(RecognitionErrorCode.FAILURE, "Cancel recognition timeout");
         } else if (mError != null) {
             throw new RecognitionException(mError);
@@ -649,11 +673,16 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
 
             // The recognition is over. close the session
             if (mBuilder.autoClose) {
-                try {
-                    close();
-                } catch (RecognitionException e) {
-                    //ignoring
-                }
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            close();
+                        } catch (RecognitionException e) {
+                            //ignoring
+                        }
+                    }
+                }).start();
             }
         }
     }
@@ -666,11 +695,6 @@ public class SpeechRecognizerImpl implements SpeechRecognizerInterface, Recognit
 
         // Set the error
         mError = error;
-
-        // Send message to the connection thread
-        Message message = mAsrServerConnectionThread.obtainMessage();
-        message.arg1 = AsrServerConnectionThread.MESSAGE_ON_CPQD_ASR_LIBRARY_ERROR;
-        message.sendToTarget();
 
         // Cancel the reader thread.
         if (mReaderTask != null) {
