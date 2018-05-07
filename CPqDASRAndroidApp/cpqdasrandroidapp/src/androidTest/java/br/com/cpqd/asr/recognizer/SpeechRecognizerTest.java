@@ -271,7 +271,7 @@ public class SpeechRecognizerTest {
             recognizer.recognize(audio, LanguageModelList.builder().addFromURI(lmName).build());
 
             // faz a leitura do arquivo e escreve no AudioSource
-            byte[] buffer = new byte[16000]; // segmento de 100 ms (tx 8kHz)
+            byte[] buffer = new byte[1600]; // segmento de 100 ms (tx 8kHz)
             int len;
             boolean keepWriting = true;
             while ((len = input.read(buffer)) != -1 && keepWriting) {
