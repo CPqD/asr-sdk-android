@@ -95,56 +95,6 @@ public class AsrActivity extends AppCompatActivity {
         // Ask the user the permission to use the microphone
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSION_REQUEST_RECORD_AUDIO);
 
-        RecognitionConfig config = RecognitionConfig.builder()
-                .maxSentences(3)
-                .continuousMode(false)
-                .build();
-
-        // Initialize the recognizer
-        try {
-            recognizer = SpeechRecognizer.builder()
-                    .serverURL(URL)
-                    .userAgent("client=Android;app=ContinuousModeSample")  // optional information for logging and server statistics
-                    .credentials(USER, PWD)
-                    .recogConfig(config)
-                    .addListener(new RecognitionListener() {
-                        @Override
-                        public void onSpeechStop(Integer time) {
-                            Log.d(TAG, "End of speech");
-                        }
-
-                        @Override
-                        public void onSpeechStart(Integer time) {
-                            Log.d(TAG, "Speech started");
-                        }
-
-                        @Override
-                        public void onRecognitionResult(br.com.cpqd.asr.recognizer.model.RecognitionResult result) {
-                            Log.d(TAG, "Recognition result: " + result.getResultCode());
-                        }
-
-                        @Override
-                        public void onPartialRecognitionResult(PartialRecognitionResult result) {
-                            Log.d(TAG, "Partial result: " + result.getText());
-                        }
-
-                        @Override
-                        public void onListening() {
-                            Log.d(TAG, "Server is listening");
-                            showText("Server is listening");
-                        }
-
-                        @Override
-                        public void onError(final RecognitionError error) {
-                            Log.d(TAG, String.format("Recognition error: [%s] %s", error.getCode(), error.getMessage()));
-                            showText(error.toString());
-                        }
-
-                    }).build(getApplicationContext());
-        } catch (Exception e) {
-            Log.e(TAG, e.getMessage(), e);
-        }
-
         // Initialize the handler
         HandlerThread handlerThread = new HandlerThread("AsrHandlerThread");
         handlerThread.start();
@@ -176,12 +126,60 @@ public class AsrActivity extends AppCompatActivity {
 
                 showText("");
 
-                // Language model (as installed in the server environment)
-                LanguageModelList lmList = LanguageModelList.builder().addFromURI("builtin:slm/general").build();
-
                 try {
+
+                    // Initialize the recognition configuration
+                    RecognitionConfig config = RecognitionConfig.builder()
+                            .maxSentences(3)
+                            .continuousMode(true)
+                            .build();
+
+                    // Initialize the recognizer
+                    recognizer = SpeechRecognizer.builder()
+                            .serverURL(URL)
+                            .userAgent("client=Android")  // optional information for logging and server statistics
+                            .credentials(USER, PWD)
+                            .recogConfig(config)
+                            .addListener(new RecognitionListener() {
+                                @Override
+                                public void onSpeechStop(Integer time) {
+                                    Log.d(TAG, "End of speech");
+                                }
+
+                                @Override
+                                public void onSpeechStart(Integer time) {
+                                    Log.d(TAG, "Speech started");
+                                }
+
+                                @Override
+                                public void onRecognitionResult(br.com.cpqd.asr.recognizer.model.RecognitionResult result) {
+                                    Log.d(TAG, "Recognition result: " + result.getResultCode());
+                                }
+
+                                @Override
+                                public void onPartialRecognitionResult(PartialRecognitionResult result) {
+                                    Log.d(TAG, "Partial result: " + result.getText());
+                                }
+
+                                @Override
+                                public void onListening() {
+                                    Log.d(TAG, "Server is listening");
+                                    showText("Server is listening");
+                                }
+
+                                @Override
+                                public void onError(final RecognitionError error) {
+                                    Log.d(TAG, String.format("Recognition error: [%s] %s", error.getCode(), error.getMessage()));
+                                    showText(error.toString());
+                                }
+
+                            }).build(getApplicationContext());
+
                     // Initiate the audio source
                     AudioSource audio = new MicAudioSource(8000);
+
+                    // Language model (as installed in the server environment)
+                    LanguageModelList lmList = LanguageModelList.builder().addFromURI("builtin:slm/general").build();
 
                     // Starts the recognize
                     recognizer.recognize(audio, lmList);
@@ -192,14 +190,20 @@ public class AsrActivity extends AppCompatActivity {
                     //Format the result to show
                     String sResult = "";
 
-                    int i = 0;
-                    for (RecognitionAlternative alt : result.getAlternatives()) {
-                        sResult = sResult.concat(String.format("Alternative [%s] (score = %s): %s \n\n", i++, alt.getConfidence(), alt.getText()));
+                    if (result.getAlternatives().size() > 0) {
 
-                        int j = 0;
-                        for (Interpretation interpretation : alt.getInterpretations()) {
-                            sResult = sResult.concat(String.format("\t Interpretation [%s]: %s \n\n", j++, interpretation));
+                        int i = 0;
+                        for (RecognitionAlternative alt : result.getAlternatives()) {
+                            sResult = sResult.concat(String.format("Alternative [%s] (score = %s): %s \n\n", i++, alt.getConfidence(), alt.getText()));
+
+                            int j = 0;
+                            for (Interpretation interpretation : alt.getInterpretations()) {
+                                sResult = sResult.concat(String.format("\t Interpretation [%s]: %s \n\n", j++, interpretation));
+                            }
                         }
+
+                    } else {
+                        sResult = result.getResultCode().toString();
                     }
 
                     showText(sResult);

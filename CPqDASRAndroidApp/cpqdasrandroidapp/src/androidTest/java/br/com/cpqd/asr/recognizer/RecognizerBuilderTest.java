@@ -180,24 +180,4 @@ public class RecognizerBuilderTest {
             fail("Test failed: " + e.getMessage());
         }
     }
-
-    @Test
-    public void maxWaitSeconds() {
-        int numberOfSentences = 3;
-
-        try {
-            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd)
-                    .recogConfig(RecognitionConfig.builder().maxSentences(numberOfSentences).build()).maxWaitSeconds(1)
-                    .build(mContext);
-            AudioSource audio = new FileAudioSource(mContext.getAssets().open(filename));
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(lmName).build());
-            recognizer.waitRecognitionResult();
-            fail("Recognition timeout expected");
-        } catch (RecognitionException e) {
-            assertTrue("Recognition timeout", true);
-        } catch (Exception e) {
-            e.printStackTrace();
-            fail("Test failed: " + e.getMessage());
-        }
-    }
 }

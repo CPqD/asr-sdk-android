@@ -236,9 +236,20 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
 
         // Ask connection thread to establish connection.
         if (!builder.connectOnRecognize) {
+
+            mState = STATE_WAITING_CREATE_SESSION;
+
             Message message = mAsrServerConnectionThread.obtainMessage();
             message.arg1 = AsrServerConnectionThread.MESSAGE_CONNECT_TO_SERVER;
             message.sendToTarget();
+
+            try {
+                synchronized (mSeverResponseLock) {
+                    mSeverResponseLock.wait(MAX_RESPONSE_TIMEOUT);
+                }
+            } catch (Exception e) {
+                // ignoring
+            }
         }
     }
 
@@ -305,6 +316,11 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
                 if (mState == STATE_WAITING_CREATE_SESSION) {
 
                     mState = STATE_IDLE;
+
+                    // Notify the server response
+                    synchronized (mSeverResponseLock) {
+                        mSeverResponseLock.notifyAll();
+                    }
 
                 } else if (mState == STATE_STARTING) {
 
@@ -746,11 +762,15 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
         }
 
         void cancel() {
-            readerStatus = ReaderTaskStatus.CANCELED;
+            if (readerStatus != ReaderTaskStatus.FINISHED) {
+                readerStatus = ReaderTaskStatus.CANCELED;
+            }
         }
 
         void finish() {
-            readerStatus = ReaderTaskStatus.FINISHED;
+            if (readerStatus != ReaderTaskStatus.CANCELED) {
+                readerStatus = ReaderTaskStatus.FINISHED;
+            }
         }
 
         @Override
@@ -774,11 +794,19 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
 
                     read = audio.read(buffer);
 
+                    byte[] bufferToSend;
+
+                    if (read > 0 && read != chunkSize) {
+                        bufferToSend = Arrays.copyOf(buffer, read);
+                    } else {
+                        bufferToSend = buffer;
+                    }
+
                     if (read > 0) {
                         Message message = mAsrServerConnectionThread.obtainMessage();
                         message.arg1 = AsrServerConnectionThread.MESSAGE_HANDLE_AUDIO_PACKET;
                         message.arg2 = 0;
-                        message.obj = buffer;
+                        message.obj = bufferToSend;
                         message.sendToTarget();
                     } else if (read < 0) {
                         Message message = mAsrServerConnectionThread.obtainMessage();
