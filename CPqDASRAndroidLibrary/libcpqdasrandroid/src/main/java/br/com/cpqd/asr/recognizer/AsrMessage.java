@@ -56,7 +56,7 @@ class AsrMessage {
     /**
      * ASR minor version.
      */
-    private static final String ASR_MINOR_VERSION = "1";
+    private static final String ASR_MINOR_VERSION = "3";
 
     /**
      * Method to cancel recognition.

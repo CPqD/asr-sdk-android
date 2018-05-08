@@ -131,7 +131,7 @@ public class AsrActivity extends AppCompatActivity {
                     // Initialize the recognition configuration
                     RecognitionConfig config = RecognitionConfig.builder()
                             .maxSentences(3)
-                            .continuousMode(true)
+                            .continuousMode(false)
                             .build();
 
                     // Initialize the recognizer
