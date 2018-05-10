@@ -35,7 +35,7 @@ public class MicAudioSource implements AudioSource {
     private static final int RECORDER_AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT;
 
     /* Audio source. */
-    private static final int RECORDER_AUDIO_SOURCE = MediaRecorder.AudioSource.VOICE_COMMUNICATION;
+    private static final int RECORDER_AUDIO_SOURCE = MediaRecorder.AudioSource.MIC;
 
     /* Audio record. */
     private AudioRecord recorder;
