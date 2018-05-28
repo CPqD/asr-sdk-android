@@ -1,0 +1,7 @@
+configurations.create("default")
+//artifacts.add("default", file('recognizer-debug.aar'))
+
+// This relative path works when both projects
+// recognizer and sample-app are in the same directory.
+artifacts.add("default", file('../../recognizer/recognizer/build/outputs/aar/recognizer-debug.aar'))
+// artifacts.add("default", file('../../recognizer/recognizer/build/outputs/aar/recognizer-release.aar'))

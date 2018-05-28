@@ -1,7 +1,0 @@
-configurations.create("default")
-//artifacts.add("default", file('libcpqdasrandroid-debug.aar'))
-
-// This relative path works when both projects
-// CPqDASRAndroidLibrary and CPqDASRAndroidApp are in the same directory.
-artifacts.add("default", file('../../CPqDASRAndroidLibrary/libcpqdasrandroid/build/outputs/aar/libcpqdasrandroid-debug.aar'))
-// artifacts.add("default", file('../../CPqDASRAndroidLibrary/libcpqdasrandroid/build/outputs/aar/libcpqdasrandroid-release.aar'))
