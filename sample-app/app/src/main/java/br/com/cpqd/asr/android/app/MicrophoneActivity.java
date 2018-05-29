@@ -2,6 +2,8 @@ package br.com.cpqd.asr.android.app;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -50,6 +52,16 @@ public class MicrophoneActivity extends AppCompatActivity {
     private TextView mTvResult;
 
     /**
+     * Reference of the {@link TextView} that show microphone instructions.
+     */
+    private TextView mTextViewMicrophoneInstructions;
+
+    /**
+     * Reference of the {@link ImageButton} that show microphone image button.
+     */
+    private ImageButton mImageButtonMicrophone;
+
+    /**
      * Reference of the {@link Handler}
      */
     private Handler mHandler;
@@ -57,7 +69,12 @@ public class MicrophoneActivity extends AppCompatActivity {
     /**
      * Reference of the ASR library.
      */
-    private SpeechRecognizerInterface recognizer;
+    private SpeechRecognizerInterface mRecognizer;
+
+    /**
+     * Flag to know if is recognizing or not
+     */
+    private Boolean mIsRecognizing = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,20 +89,8 @@ public class MicrophoneActivity extends AppCompatActivity {
         // Set references of UI objects.
         mTvStatus = findViewById(R.id.tv_status);
         mTvResult = findViewById(R.id.tv_result);
-
-        ImageButton imageButtonMicrophone = findViewById(R.id.asr_activity_image_button_microphone);
-        imageButtonMicrophone.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                try {
-                    showStatus("Cancel recognition");
-                    recognizer.cancelRecognition();
-                } catch (Exception e) {
-                    Log.e(TAG, e.getMessage(), e);
-                }
-                return false;
-            }
-        });
+        mTextViewMicrophoneInstructions = findViewById(R.id.asr_activity_text_view_microphone_instructions);
+        mImageButtonMicrophone = findViewById(R.id.asr_activity_image_button_microphone);
 
         // Ask the user the permission to use the microphone
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSION_REQUEST_RECORD_AUDIO);
@@ -110,113 +115,180 @@ public class MicrophoneActivity extends AppCompatActivity {
     }
 
     /**
+     * Method to change state
+     */
+    private void changeState(boolean b) {
+
+        mIsRecognizing = b;
+
+        // The new microphone background.
+        final Drawable microphoneBackgroundDrawable;
+
+        // The new microphone instructions.
+        final int microphoneInstructions;
+
+        if (mIsRecognizing) {
+
+            if (Build.VERSION.SDK_INT >= 21) {
+                microphoneBackgroundDrawable = getDrawable(R.drawable.microphone_background_listening);
+            } else {
+                microphoneBackgroundDrawable = getResources().getDrawable(R.drawable.microphone_background_listening);
+            }
+
+            microphoneInstructions = R.string.asr_activity_text_view_microphone_instructions_listening;
+        } else {
+
+            if (Build.VERSION.SDK_INT >= 21) {
+                microphoneBackgroundDrawable = getDrawable(R.drawable.microphone_background_idle);
+            } else {
+                microphoneBackgroundDrawable = getResources().getDrawable(R.drawable.microphone_background_idle);
+            }
+
+            microphoneInstructions = R.string.asr_activity_text_view_microphone_instructions_idle;
+        }
+
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                // Set new microphone background and instructions.
+                if (Build.VERSION.SDK_INT >= 16) {
+                    mImageButtonMicrophone.setBackground(microphoneBackgroundDrawable);
+                } else {
+                    mImageButtonMicrophone.setBackgroundDrawable(microphoneBackgroundDrawable);
+                }
+                mTextViewMicrophoneInstructions.setText(microphoneInstructions);
+            }
+        });
+    }
+
+    /**
      * Method called when the microphone button is clicked.
      *
      * @param view the microphone button.
      */
     public void onClickMicrophone(View view) {
 
-        mHandler.post(new Runnable() {
-            @Override
-            public void run() {
+        if (mIsRecognizing) {
+            try {
+                changeState(false);
+                showStatus("Cancel recognition");
+                mRecognizer.cancelRecognition();
+            } catch (Exception e) {
+                Log.e(TAG, e.getMessage(), e);
+            }
+        } else {
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
 
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        mTvStatus.setText("");
-                        mTvResult.setText("");
-                    }
-                });
-
-                try {
-
-                    // Initialize the recognizer
-                    recognizer = SpeechRecognizer.builder()
-                            .serverURL(Constants.URL)
-                            .userAgent("client=Android")  // optional information for logging and server statistics
-                            .credentials(Constants.USER, Constants.PWD)
-                            .addListener(new RecognitionListener() {
-                                @Override
-                                public void onSpeechStop(Integer time) {
-                                    Log.d(TAG, "End of speech");
-                                }
-
-                                @Override
-                                public void onSpeechStart(Integer time) {
-                                    Log.d(TAG, "Speech started");
-                                }
-
-                                @Override
-                                public void onRecognitionResult(br.com.cpqd.asr.recognizer.model.RecognitionResult result) {
-                                    Log.d(TAG, "Recognition result: " + result.getResultCode());
-                                }
-
-                                @Override
-                                public void onPartialRecognitionResult(PartialRecognitionResult result) {
-                                    Log.d(TAG, "Partial result: " + result.getText());
-                                }
-
-                                @Override
-                                public void onListening() {
-                                    Log.d(TAG, "Server is listening");
-                                    showStatus("Server is listening");
-                                }
-
-                                @Override
-                                public void onError(final RecognitionError error) {
-                                    Log.d(TAG, String.format("Recognition error: [%s] %s", error.getCode(), error.getMessage()));
-                                    showStatus(error.toString());
-                                }
-
-                            }).build(getApplicationContext());
-
-                    // Initiate the audio source
-                    AudioSource audio = new MicAudioSource(8000);
-
-                    // Starts the recognize
-                    recognizer.recognize(audio, LanguageModelList.builder().addFromURI("builtin:slm/general").build());
-
-                    // Awaits the result of recognition
-                    RecognitionResult result = recognizer.waitRecognitionResult().get(0);
-
-                    //Format the result to show
-                    String sResult = "";
-
-                    if (result.getAlternatives().size() > 0) {
-
-                        int i = 0;
-                        for (RecognitionAlternative alt : result.getAlternatives()) {
-                            sResult = sResult.concat(String.format("Alternative [%s] (score = %s): %s \n\n", i++, alt.getConfidence(), alt.getText()));
-
-                            int j = 0;
-                            for (Interpretation interpretation : alt.getInterpretations()) {
-                                sResult = sResult.concat(String.format("\t Interpretation [%s]: %s \n\n", j++, interpretation));
-                            }
-                        }
-
-                    } else {
-                        sResult = result.getResultCode().toString();
-                    }
-
-                    final String formatedResult = sResult;
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            mTvResult.setText(formatedResult);
+                            mTvStatus.setText("");
+                            mTvResult.setText("");
                         }
                     });
 
-                } catch (Exception e) {
-                    Log.e(TAG, e.getMessage(), e);
-                } finally {
-                    // If you do not have more audio to recognize, log out
                     try {
-                        recognizer.close();
+
+                        // Initialize the recognizer
+                        if (mRecognizer == null) {
+                            mRecognizer = SpeechRecognizer.builder()
+                                    .serverURL(Constants.URL)
+                                    .userAgent("client=Android")  // optional information for logging and server statistics
+                                    .credentials(Constants.USER, Constants.PWD)
+                                    .addListener(new RecognitionListener() {
+                                        @Override
+                                        public void onSpeechStop(Integer time) {
+                                            Log.d(TAG, "End of speech");
+                                        }
+
+                                        @Override
+                                        public void onSpeechStart(Integer time) {
+                                            Log.d(TAG, "Speech started");
+                                        }
+
+                                        @Override
+                                        public void onRecognitionResult(RecognitionResult result) {
+                                            Log.d(TAG, "Recognition result: " + result.getResultCode());
+                                        }
+
+                                        @Override
+                                        public void onPartialRecognitionResult(PartialRecognitionResult result) {
+                                            Log.d(TAG, "Partial result: " + result.getText());
+                                        }
+
+                                        @Override
+                                        public void onListening() {
+                                            Log.d(TAG, "Server is listening");
+                                            showStatus("Server is listening");
+                                            changeState(true);
+                                        }
+
+                                        @Override
+                                        public void onError(final RecognitionError error) {
+                                            Log.d(TAG, String.format("Recognition error: [%s] %s", error.getCode(), error.getMessage()));
+                                            showStatus(error.toString());
+                                        }
+
+                                    }).build(getApplicationContext());
+                        }
+
+                        // Initiate the audio source
+                        AudioSource audio = new MicAudioSource(8000);
+
+                        // Starts the recognize
+                        mRecognizer.recognize(audio, LanguageModelList.builder().addFromURI("builtin:slm/general").build());
+
+                        // Awaits the result of recognition
+                        RecognitionResult result = mRecognizer.waitRecognitionResult().get(0);
+
+                        //Format the result to show
+                        String sResult = "";
+
+                        if (result.getAlternatives().size() > 0) {
+
+                            int i = 0;
+                            for (RecognitionAlternative alt : result.getAlternatives()) {
+                                sResult = sResult.concat(String.format("Alternative [%s] (score = %s): %s \n\n", i++, alt.getConfidence(), alt.getText()));
+
+                                int j = 0;
+                                for (Interpretation interpretation : alt.getInterpretations()) {
+                                    sResult = sResult.concat(String.format("\t Interpretation [%s]: %s \n\n", j++, interpretation));
+                                }
+                            }
+
+                        } else {
+                            sResult = result.getResultCode().toString();
+                        }
+
+                        final String formatedResult = sResult;
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                mTvResult.setText(formatedResult);
+                            }
+                        });
+
                     } catch (Exception e) {
-                        // ignore
+                        Log.e(TAG, e.getMessage(), e);
+                    } finally {
+                        // If you do not have more audio to recognize, log out
+                        try {
+                            if (mRecognizer != null)
+                                mRecognizer.close();
+                        } catch (Exception e) {
+                            // ignore
+                        }
+
+                        if (mIsRecognizing) {
+                            showStatus("Session closed");
+                            changeState(false);
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
     }
 }
