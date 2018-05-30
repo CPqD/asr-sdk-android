@@ -660,6 +660,8 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
 
                         if (startRecogResult != null && startRecogResult.contentEquals("SUCCESS")) {
 
+                            removeMessages(WHAT_NETWORK_TIMEOUT);
+
                             // Notify the speech recognizer that server is listening
                             Message message = mRecognizer.obtainMessage();
                             message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_START_RECOGNITION;
