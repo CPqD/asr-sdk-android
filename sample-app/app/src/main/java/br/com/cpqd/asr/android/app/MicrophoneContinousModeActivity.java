@@ -277,6 +277,7 @@ public class MicrophoneContinousModeActivity extends AppCompatActivity {
                                         public void onError(final RecognitionError error) {
                                             Log.d(TAG, String.format("Recognition error: [%s] %s", error.getCode(), error.getMessage()));
                                             showText(error.toString());
+                                            changeState(false);
                                         }
 
                                     }).build(getApplicationContext());

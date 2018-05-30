@@ -1126,6 +1126,7 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
      * in order to properly synchronize critical sections.</p>
      */
     @ClientEndpoint(encoders = AsrMessageEncoder.class, decoders = AsrMessageDecoder.class)
+    @SuppressWarnings("unused")
     private class AsrClientEndpoint {
 
         /**
@@ -1137,7 +1138,6 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
          * @param endpointConfig unused.
          * @see #mWebsocketSession
          */
-        @SuppressWarnings("unused")
         @OnOpen
         public void onOpen(Session session, EndpointConfig endpointConfig) {
 
@@ -1162,15 +1162,19 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
          * @param session     unused.
          * @param closeReason unused.
          */
-        @SuppressWarnings("unused")
         @OnClose
         public void onClose(Session session, CloseReason closeReason) {
 
-            String reason = closeReason.getReasonPhrase();
-            if (reason != null && !reason.contentEquals(LibraryErrorCloseReason.REASON_PHRASE)) {
-                Message message = obtainMessage();
-                message.arg1 = INTERNAL_MESSAGE_ON_CONNECTION_CLOSE;
-                message.sendToTarget();
+            if (closeReason != null) {
+                String reason = closeReason.getReasonPhrase();
+                if (reason != null && !reason.contentEquals(LibraryErrorCloseReason.REASON_PHRASE)) {
+
+                    Log.w(TAG, "[AsrClientEndpoint - onClose] " + closeReason.toString());
+
+                    Message message = obtainMessage();
+                    message.arg1 = INTERNAL_MESSAGE_ON_CONNECTION_CLOSE;
+                    message.sendToTarget();
+                }
             }
         }
 
@@ -1182,7 +1186,6 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
          * @param throwable the error cause;
          *                  it is sent to the notified thread.
          */
-        @SuppressWarnings("unused")
         @OnError
         public void onError(Session session, Throwable throwable) {
 
@@ -1201,7 +1204,6 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
          * @param asrMessage message received from the server;
          *                   it is sent to the notified thread.
          */
-        @SuppressWarnings("unused")
         @OnMessage
         public void onMessage(Session session, AsrMessage asrMessage) {
 

@@ -230,6 +230,7 @@ public class MicrophoneActivity extends AppCompatActivity {
                                         public void onError(final RecognitionError error) {
                                             Log.d(TAG, String.format("Recognition error: [%s] %s", error.getCode(), error.getMessage()));
                                             showStatus(error.toString());
+                                            changeState(false);
                                         }
 
                                     }).build(getApplicationContext());
