@@ -91,7 +91,7 @@ public class FileActivity extends AppCompatActivity {
                     recognizer = SpeechRecognizer.builder().serverURL(Constants.URL).credentials(Constants.USER, Constants.PWD).build(getApplicationContext());
 
                     // Initiate the audio source
-                    AudioSource audio = new FileAudioSource(getApplicationContext().getAssets().open("pizza-veg-8k.wav"));
+                    AudioSource audio = new FileAudioSource(getApplicationContext().getAssets().open("pizza_veg_audio_8k.wav"));
 
                     // Starts the recognize
                     recognizer.recognize(audio, LanguageModelList.builder().addFromURI("builtin:slm/general").build());

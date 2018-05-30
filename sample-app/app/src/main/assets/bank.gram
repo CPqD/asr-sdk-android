@@ -1,0 +1,159 @@
+#ABNF 1.0 UTF-8;
+language pt-BR;
+tag-format <semantics/1.0>;
+mode voice;
+
+// ============================================================================
+// Sample grammar: bank.gram
+//
+// This is a grammar for bank operations like transfer, get balance or 
+// statement, payment. Multiple interpretation slots are returned.
+//
+// Example: "transfira vinte e cinco reais para a conta corrente"
+//
+// ============================================================================
+
+root $root;
+
+$root = [$pre_filler] $command [$pos_filler] {out = rules.command};
+
+$command = $transfer | $balance | $payment | $statement;
+
+// ----------------------------------------------------------------------------
+// FILLERS
+// ----------------------------------------------------------------------------
+
+$pre_filler = é | [é] por favor | [é] [por favor] [eu] (queria | quero | gostaria de);
+
+$pos_filler = por favor | por gentileza;
+
+$to = pra | pro | para | para | para;
+
+$from = de | da | do;
+
+$my = meu | minha;
+
+$in = em | no | na;
+
+// ----------------------------------------------------------------------------
+// TRANSFER
+// ----------------------------------------------------------------------------
+
+$transfer = $transfer_action {out.action = rules.latest()}
+			[ [de] $amount_money {out.money = rules.latest()}] 
+			[ $from $account_type {out.from_account_type = rules.latest()} ]
+			[ $to $account_type {out.to_account_type = rules.latest()} ]
+			[ $date {out.date = rules.latest()} ];
+
+$transfer_action = 
+(
+	transfira | 
+	transferir | 
+	[fazer|efetuar|realizar] [uma] transferência
+
+) {out = "TRANSFERENCIA"};
+
+// ----------------------------------------------------------------------------
+// BALANCE
+// ----------------------------------------------------------------------------
+
+$balance =	$balance_action {out.action = rules.latest()}
+			[ [$from] $account_list {out.from_account_type = rules.latest()} ];
+
+$account_list = {out = new Array()} ( [e] $account_type {out.push(rules.latest())} )<1-3>;
+
+$balance_action = 
+(
+	[ver | consultar] [o] [meu] saldo
+
+) {out = "SALDO"};
+
+// ----------------------------------------------------------------------------
+// STATEMENT
+// ----------------------------------------------------------------------------
+
+$statement =	$statement_action {out.action = rules.latest()}
+				[ [$from] $account_type {out.from_account_type = rules.latest()} ];
+
+$statement_action = 
+(
+	[ver | consultar] [o] [meu] extrato |
+	[ver | consultar] [a] movimentação
+
+) {out = "EXTRATO"};
+
+// ----------------------------------------------------------------------------
+// PAYMENT
+// ----------------------------------------------------------------------------
+
+$payment = 	$payment_action {out.action = rules.latest()}
+			[$pay_what {out.pay_what = rules.latest()}];
+
+$payment_action = 
+(
+	[efetuar|realizar] [um|o] pagamento [de|da|do] | 
+	pagar
+
+) {out = "PAGAMENTO"};
+
+// ----------------------------------------------------------------------------
+// TYPES
+// ----------------------------------------------------------------------------
+
+$account_type = [a] [minha] conta corrente {out = "CONTA_CORRENTE"} | 
+                [a] [minha] poupança {out = "CONTA_POUPANCA"} | 
+                [a] [minha] conta de (investimento | investimentos) {out = "CONTA_INVESTIMENTO"} | 
+				[o] [meu] fundo de (investimento | investimentos) {out = "CONTA_INVESTIMENTO"} |
+				[meu] cartão de crédito {out = "CARTAO_CREDITO"};
+
+$pay_what = [uma | minha] conta {out = "BOLETO"} | 
+			[um | meu] boleto {out = "BOLETO"} | 
+			[uma | minha] fatura {out = "BOLETO"} | 
+			[o | [a] conta (de|do) | a fatura (de|do)] telefone {out = "TELEFONE"} |
+			[o | [a] fatura do] cartão de crédito {out = "CARTAO_CREDITO"};
+
+// ----------------------------------------------------------------------------
+// DATE
+// ----------------------------------------------------------------------------
+
+$date = ([no] dia | em) $number_0_99 {out = (rules.number_0_99).toString()} [de $month {out = out + "/" + rules.month} | do mês que vem | do próximo mês] |
+		amanhã {out = "AMANHA"} |
+		depois de amanhã {out = "DEPOIS_AMANHA"} |
+		[[na] próxima | [no] próximo] $day_of_week {out = rules.latest()};
+
+$month = 	janeiro {out = "01"} |
+			fevereiro {out = "02"} |
+			março {out = "03"} |
+			abril {out = "04"} |
+			maio {out = "05"} |
+			junho {out = "06"} |
+			julho {out = "07"} |
+			agosto {out = "08"} |
+			setembro {out = "09"} |
+			outubro {out = "10"} |
+			novembro {out = "11"} |
+			dezembro {out = "12"};
+
+$day_of_week = 	domingo {out = "DOMINGO"} |
+				(segunda-feira | segunda [feira]) {out = "SEGUNDA"} |
+				(terça-feira | terça [feira]) {out = "TERCA"} |
+				(quarta-feira | quarta [feira]) {out = "QUARTA"} |
+				(quinta-feira | quinta [feira]) {out = "QUINTA"} |
+				(sexta-feira | sexta [feira]) {out = "SEXTA"} |
+				sábado {out = "SABADO"};
+
+
+// ----------------------------------------------------------------------------
+// AMOUNT OF MONEY
+// ----------------------------------------------------------------------------
+
+$amount_money = $number_0_999999999 reais {out=rules.latest()} | 
+                $number_0_999999999 {out=rules.latest()} reais e $number_0_99 centavos {out = out + (rules.latest()/100)};
+
+$number_0_999999999 = $<number.gram#number_0_999999999>;
+
+$number_0_99 = $<number.gram#number_0_99>;
+
+
+// ============================================================================
+

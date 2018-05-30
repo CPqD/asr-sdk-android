@@ -41,12 +41,6 @@ public class RecognizerBuilderTest {
 
     private static final Context mContext = InstrumentationRegistry.getTargetContext();
 
-    private static final String url = "wss://speech.cpqd.com.br/asr/ws/estevan/recognize/8k"; // "wss://speech.cpqd.com.br/asr/ws/v2/recognize/8k";
-    private static final String user = "estevan";
-    private static final String passwd = "Thect195";
-    private static final String filename = "pizza-veg-8k.wav";
-    private static final String lmName = "builtin:slm/general";
-
     @Test
     public void urlNull() {
         try {
@@ -79,10 +73,10 @@ public class RecognizerBuilderTest {
         int numberOfSentences = 3;
         try {
             RecognitionConfig recognitionConfig = RecognitionConfig.builder().maxSentences(numberOfSentences).build();
-            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd)
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
                     .recogConfig(recognitionConfig).build(mContext);
-            AudioSource audio = new FileAudioSource(mContext.getAssets().open(filename));
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(lmName).build());
+            AudioSource audio = new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio));
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
             assertTrue("Number of alternatives is " + numberOfSentences, results.get(0).getAlternatives().size() == numberOfSentences);
         } catch (Exception e) {
@@ -103,7 +97,7 @@ public class RecognizerBuilderTest {
         final int pos2 = 1;
 
         try {
-            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd)
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
                     .recogConfig(RecognitionConfig.builder().build()).addListener(new RecognitionListener() {
 
                         @Override
@@ -166,8 +160,8 @@ public class RecognizerBuilderTest {
                         }
                     }).build(mContext);
 
-            AudioSource audio = new FileAudioSource(mContext.getAssets().open(filename));
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(lmName).build());
+            AudioSource audio = new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio));
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             recognizer.waitRecognitionResult();
             assertTrue("Compare start counter", startCounter[pos1] == startCounter[pos2]);
             assertTrue("Compare stop counter", stopCounter[pos1] == stopCounter[pos2]);

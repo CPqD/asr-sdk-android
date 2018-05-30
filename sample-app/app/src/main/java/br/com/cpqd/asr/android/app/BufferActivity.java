@@ -98,7 +98,7 @@ public class BufferActivity extends AppCompatActivity {
                     recognizer.recognize(audio, LanguageModelList.builder().addFromURI("builtin:slm/general").build());
 
                     // Create a inputStream from file
-                    InputStream input = getApplicationContext().getAssets().open("pizza-veg-8k.wav");
+                    InputStream input = getApplicationContext().getAssets().open("pizza_veg_audio_8k.wav");
 
                     // Reads the file and writes to AudioSource
                     byte[] buffer = new byte[1600]; // 100ms segment (tx 8kHz)

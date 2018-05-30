@@ -41,23 +41,14 @@ public class SpeechRecognizerTest {
 
     private static final Context mContext = InstrumentationRegistry.getTargetContext();
 
-    private static final String url = "wss://speech.cpqd.com.br/asr/ws/estevan/recognize/8k"; //"wss://speech.cpqd.com.br/asr/ws/v2/recognize/8k"; // "wss://speech.cpqd.com.br/asr/ws/estevan/recognize/8k";
-    private static final String user = "estevan";
-    private static final String passwd = "Thect195";
-    private static final String filename = "pizza-veg-8k.wav";
-    private static final String lmName = "builtin:slm/general";
-
     @Test
     public void basicGrammar() {
 
-        String filename = "cpf_8k.wav";
-        String lmName = "builtin:grammar/cpf";
-
         SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd).build(mContext);
-            AudioSource audio = new FileAudioSource(mContext.getAssets().open(filename));
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
+            AudioSource audio = new FileAudioSource(mContext.getAssets().open(TestConstants.CpfAudio));
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.CpfLanguageModel).build());
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
             assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
@@ -84,9 +75,9 @@ public class SpeechRecognizerTest {
 
         SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd).build(mContext);
-            AudioSource audio = new FileAudioSource(mContext.getAssets().open(filename));
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
+            AudioSource audio = new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio));
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
             assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
@@ -108,13 +99,12 @@ public class SpeechRecognizerTest {
 
     @Test
     public void noMatchGrammar() {
-        String lmName = "builtin:grammar/number";
 
         SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd).build(mContext);
-            AudioSource audio = new FileAudioSource(mContext.getAssets().open(filename));
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
+            AudioSource audio = new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio));
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.NumberLanguageModel).build());
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
             assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
@@ -136,13 +126,12 @@ public class SpeechRecognizerTest {
 
     @Test
     public void noSpeech() {
-        String filename = "silence-8k.wav";
 
         SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd).build(mContext);
-            AudioSource audio = new FileAudioSource(mContext.getAssets().open(filename));
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
+            AudioSource audio = new FileAudioSource(mContext.getAssets().open(TestConstants.SilenceAudio));
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
             assertTrue("Number of alternatives is 0", results.get(0).getAlternatives().size() == 0);
@@ -165,18 +154,17 @@ public class SpeechRecognizerTest {
     public void noInputTimeout() {
         int packetDelay = 130;
         int noInputTimeout = 2000;
-        String filename = "silence-8k.wav";
 
         SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd)
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
                     .recogConfig(RecognitionConfig.builder().noInputTimeoutEnabled(true)
                             .noInputTimeoutMilis(noInputTimeout).startInputTimers(true).build())
                     .build(mContext);
 
             BufferAudioSource audio = new BufferAudioSource();
-            InputStream input = mContext.getAssets().open(filename);
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(lmName).build());
+            InputStream input = mContext.getAssets().open(TestConstants.SilenceAudio);
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
 
             // faz a leitura do arquivo e escreve no AudioSource
             byte[] buffer = new byte[1600]; // segmento de 100 ms (tx 8kHz)
@@ -216,11 +204,11 @@ public class SpeechRecognizerTest {
 
         SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd).build(mContext);
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
 
             BufferAudioSource audio = new BufferAudioSource();
-            InputStream input = mContext.getAssets().open(filename);
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(lmName).build());
+            InputStream input = mContext.getAssets().open(TestConstants.PizzaVegAudio);
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
 
             // faz a leitura do arquivo e escreve no AudioSource
             byte[] buffer = new byte[1600]; // segmento de 100 ms (tx 8kHz)
@@ -262,13 +250,13 @@ public class SpeechRecognizerTest {
         SpeechRecognizerInterface recognizer = null;
         try {
             recognizer = SpeechRecognizer.builder()
-                    .serverURL(url).credentials(user, passwd)
+                    .serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
                     .recogConfig(RecognitionConfig.builder().noInputTimeoutEnabled(true).noInputTimeoutMilis(noInputTimeout).startInputTimers(true).build())
                     .build(mContext);
 
             BufferAudioSource audio = new BufferAudioSource();
-            InputStream input = mContext.getAssets().open(filename);
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(lmName).build());
+            InputStream input = mContext.getAssets().open(TestConstants.PizzaVegAudio);
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
 
             // faz a leitura do arquivo e escreve no AudioSource
             byte[] buffer = new byte[1600]; // segmento de 100 ms (tx 8kHz)
@@ -310,11 +298,11 @@ public class SpeechRecognizerTest {
 
         SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd).maxWaitSeconds(maxWait).build(mContext);
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).maxWaitSeconds(maxWait).build(mContext);
 
             BufferAudioSource audio = new BufferAudioSource();
-            InputStream input = mContext.getAssets().open(filename);
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(lmName).build());
+            InputStream input = mContext.getAssets().open(TestConstants.PizzaVegAudio);
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
 
             // faz a leitura do arquivo e escreve no AudioSource
             byte[] buffer = new byte[1600]; // segmento de 100 ms (tx 8kHz)
@@ -350,11 +338,11 @@ public class SpeechRecognizerTest {
         int packetDelay = 100;
 
         SpeechRecognizerInterface recognizer;
-        try (InputStream input = mContext.getAssets().open(filename)) {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd).build(mContext);
+        try (InputStream input = mContext.getAssets().open(TestConstants.PizzaVegAudio)) {
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
 
             BufferAudioSource audio = new BufferAudioSource();
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
 
             // faz a leitura do arquivo e escreve no AudioSource
             byte[] buffer = new byte[1600]; // segmento de 100 ms (tx 8kHz)
@@ -385,7 +373,7 @@ public class SpeechRecognizerTest {
 
         SpeechRecognizerInterface recognizer;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd).build(mContext);
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
 
             recognizer.close();
 
@@ -405,11 +393,11 @@ public class SpeechRecognizerTest {
         int packetDelay = 100;
 
         SpeechRecognizerInterface recognizer = null;
-        try (InputStream input = mContext.getAssets().open(filename)) {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd).build(mContext);
+        try (InputStream input = mContext.getAssets().open(TestConstants.PizzaVegAudio)) {
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
             BufferAudioSource audio = new BufferAudioSource();
 
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
 
             // faz a leitura do arquivo e escreve no AudioSource
             byte[] buffer = new byte[1600]; // segmento de 100 ms (tx 8kHz)
@@ -447,7 +435,7 @@ public class SpeechRecognizerTest {
 
         SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd).build(mContext);
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
             recognizer.cancelRecognition();
             assertTrue("Normal return", true);
 
@@ -471,7 +459,7 @@ public class SpeechRecognizerTest {
 
         SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd).build(mContext);
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
             assertTrue("Result is " + (results.isEmpty() ? "empty" : Integer.toString(results.size())),
@@ -496,9 +484,9 @@ public class SpeechRecognizerTest {
 
         SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd).build(mContext);
-            AudioSource audio = new FileAudioSource(mContext.getAssets().open(filename));
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
+            AudioSource audio = new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio));
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
             assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
@@ -526,12 +514,12 @@ public class SpeechRecognizerTest {
     public void duplicateRecognize() {
 
         SpeechRecognizerInterface recognizer = null;
-        try (InputStream input = mContext.getAssets().open(filename)) {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd).build(mContext);
+        try (InputStream input = mContext.getAssets().open(TestConstants.PizzaVegAudio)) {
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
 
             BufferAudioSource audio = new BufferAudioSource();
 
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
 
             // faz a leitura do arquivo e escreve no AudioSource
             byte[] buffer = new byte[1600]; // segmento de 100 ms (tx 8kHz)
@@ -544,7 +532,7 @@ public class SpeechRecognizerTest {
             }
 
             try {
-                recognizer.recognize(audio, LanguageModelList.builder().addFromURI(lmName).build());
+                recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             } catch (Exception e) {
                 assertTrue("Failure expected", true);
             }
@@ -578,11 +566,11 @@ public class SpeechRecognizerTest {
         int maxSessionIdleSeconds = 5;
         SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd)
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
                     .maxSessionIdleSeconds(maxSessionIdleSeconds).build(mContext);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(filename)),
-                    LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
+                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
             assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
@@ -593,8 +581,8 @@ public class SpeechRecognizerTest {
             // aguarda e repete o recog
             Thread.sleep(4000);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(filename)),
-                    LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
+                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             results = recognizer.waitRecognitionResult();
             assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
                     results.get(0).getAlternatives().size() > 0);
@@ -604,8 +592,8 @@ public class SpeechRecognizerTest {
             // aguarda e repete o recog
             Thread.sleep(4000);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(filename)),
-                    LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
+                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             results = recognizer.waitRecognitionResult();
             assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
                     results.get(0).getAlternatives().size() > 0);
@@ -615,8 +603,8 @@ public class SpeechRecognizerTest {
             // força o timeout
             Thread.sleep(6000);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(filename)),
-                    LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
+                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             results = recognizer.waitRecognitionResult();
             assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
                     results.get(0).getAlternatives().size() > 0);
@@ -642,11 +630,11 @@ public class SpeechRecognizerTest {
 
         SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd)
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
                     .maxSessionIdleSeconds(maxSessionIdleSeconds).connectOnRecognize(true).build(mContext);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(filename)),
-                    LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
+                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
             assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
@@ -657,8 +645,8 @@ public class SpeechRecognizerTest {
             // aguarda e repete o recog
             Thread.sleep(4000);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(filename)),
-                    LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
+                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             results = recognizer.waitRecognitionResult();
             assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
                     results.get(0).getAlternatives().size() > 0);
@@ -668,8 +656,8 @@ public class SpeechRecognizerTest {
             // aguarda e repete o recog
             Thread.sleep(4000);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(filename)),
-                    LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
+                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             results = recognizer.waitRecognitionResult();
             assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
                     results.get(0).getAlternatives().size() > 0);
@@ -679,8 +667,8 @@ public class SpeechRecognizerTest {
             // força o timeout
             Thread.sleep(6000);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(filename)),
-                    LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
+                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             results = recognizer.waitRecognitionResult();
             assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
                     results.get(0).getAlternatives().size() > 0);
@@ -706,11 +694,11 @@ public class SpeechRecognizerTest {
 
         SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd)
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
                     .maxSessionIdleSeconds(maxSessionIdleSeconds).autoClose(true).build(mContext);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(filename)),
-                    LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
+                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
             assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
@@ -721,8 +709,8 @@ public class SpeechRecognizerTest {
             // aguarda e repete o recog
             Thread.sleep(5000);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(filename)),
-                    LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
+                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             results = recognizer.waitRecognitionResult();
             assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
                     results.get(0).getAlternatives().size() > 0);
@@ -732,8 +720,8 @@ public class SpeechRecognizerTest {
             // aguarda e repete o recog
             Thread.sleep(5000);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(filename)),
-                    LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
+                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             results = recognizer.waitRecognitionResult();
             assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
                     results.get(0).getAlternatives().size() > 0);
@@ -743,8 +731,8 @@ public class SpeechRecognizerTest {
             // força o timeout
             Thread.sleep(5000);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(filename)),
-                    LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
+                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             results = recognizer.waitRecognitionResult();
             assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
                     results.get(0).getAlternatives().size() > 0);
@@ -770,14 +758,14 @@ public class SpeechRecognizerTest {
 
         SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd)
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
                     .maxSessionIdleSeconds(maxSessionIdleSeconds).connectOnRecognize(false).autoClose(false).build(mContext);
 
             // aguarda o timeout e repete o recog
             Thread.sleep(4000);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(filename)),
-                    LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
+                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
             assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
@@ -800,15 +788,14 @@ public class SpeechRecognizerTest {
 
     @Test
     public void continuousMode() {
-        String filename = "hetero_segments_8k.wav";
 
         SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(url).credentials(user, passwd)
+            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
                     .recogConfig(RecognitionConfig.builder().continuousMode(true).build()).build(mContext);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(filename)),
-                    LanguageModelList.builder().addFromURI(lmName).build());
+            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.HeteroSegAudio)),
+                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
             assertTrue("Number of results is " + results.size(), results.size() > 0);
