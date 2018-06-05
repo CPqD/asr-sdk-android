@@ -5,9 +5,9 @@ A biblioteca de reconhecimento de fala é fornecida no formato AAR.
 ## Importando a biblioteca no Android Studio
 
 Para importar a biblioteca, é necessário fazer os seguintes passos no projeto do aplicativo:
-	- Na barra de menu, navegar em File > New > New Module…
-	- Import .JAR/.AAR Package > Next
-	- Selecione o arquivo .AAR correspondente à biblioteca. Será dado um nome ao projeto automaticamente. Pressione o botão Finish.
+* Na barra de menu, navegar em File > New > New Module…
+* Import .JAR/.AAR Package > Next
+* Selecione o arquivo .AAR correspondente à biblioteca. Será dado um nome ao projeto automaticamente. Pressione o botão Finish.
 
 ## Ajustando o script de build
 
