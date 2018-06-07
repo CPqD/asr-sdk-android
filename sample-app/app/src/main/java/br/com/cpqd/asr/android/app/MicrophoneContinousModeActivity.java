@@ -259,6 +259,10 @@ public class MicrophoneContinousModeActivity extends AppCompatActivity {
                                                     }
                                                 }
                                             }
+
+                                            if (result.isFinalResult()) {
+                                                changeState(false);
+                                            }
                                         }
 
                                         @Override
