@@ -18,6 +18,7 @@ import br.com.cpqd.asr.recognizer.RecognitionListener;
 import br.com.cpqd.asr.recognizer.SpeechRecognizer;
 import br.com.cpqd.asr.recognizer.SpeechRecognizerInterface;
 import br.com.cpqd.asr.recognizer.audio.AudioSource;
+import br.com.cpqd.asr.recognizer.audio.BufferAudioSource;
 import br.com.cpqd.asr.recognizer.audio.MicAudioSource;
 import br.com.cpqd.asr.recognizer.model.LanguageModelList;
 import br.com.cpqd.asr.recognizer.model.PartialRecognitionResult;
@@ -259,6 +260,10 @@ public class MicrophoneContinousModeActivity extends AppCompatActivity {
                                                     }
                                                 }
                                             }
+
+                                            if (result.isFinalResult()) {
+                                                changeState(false);
+                                            }
                                         }
 
                                         @Override
@@ -284,7 +289,7 @@ public class MicrophoneContinousModeActivity extends AppCompatActivity {
                         }
 
                         // Initiate the audio source
-                        mAudioSource = new MicAudioSource(8000);
+                        mAudioSource = new BufferAudioSource(8000);
 
                         // Language model (as installed in the server environment)
                         LanguageModelList lmList = LanguageModelList.builder().addFromURI("builtin:slm/general").build();
