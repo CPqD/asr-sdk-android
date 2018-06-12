@@ -6,7 +6,7 @@ Para maiores informações, consulte [a documentação do projeto](https://speec
 
 ## Códigos de Exemplo
 
-Os códigos de exemplo estão sob o diretório [CPqDASRAndroidApp](https://github.com/CPqD/asr-sdk-android/tree/master/CPqDASRAndroidApp)
+Os códigos de exemplo estão sob o diretório [sample-app](https://github.com/CPqD/asr-sdk-android/tree/master/sample-app)
 
 ## Instalação
 
@@ -14,11 +14,11 @@ Baixe o conteúdo do repositório em seu computador usando o comando abaixo:
 
 	# git clone https://github.com/CPqD/asr-sdk-android.git
 
-Abra o projeto CPqDASRAndroidLibrary no Android Studio e gere o arquivo aar contendo a biblioteca
+Abra o projeto *recognizer* no Android Studio e gere o arquivo aar contendo a biblioteca
 
 	# Build > Make Project 
 
-Abra o projeto CPqDASRAndroidApp no Android Studio e gere a apk ou instale diretamente no celular
+Abra o projeto *app* no Android Studio e gere a apk ou instale diretamente no celular
 
 Para gerar a apk, utilize a seguinte opção da barra de ferramentas do Android Studio
 
@@ -26,4 +26,4 @@ Para gerar a apk, utilize a seguinte opção da barra de ferramentas do Android 
 	
 Para instalar diretamente no celular, utilize a seguinte opção da barra de ferramentas do Android Studio
 
-	# Run > Run 'cpqdasrandroidapp' 
+	# Run > Run 'app'
