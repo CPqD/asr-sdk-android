@@ -19,9 +19,11 @@ import android.content.Context;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.List;
 
@@ -32,7 +34,10 @@ import br.com.cpqd.asr.recognizer.model.PartialRecognitionResult;
 import br.com.cpqd.asr.recognizer.model.RecognitionConfig;
 import br.com.cpqd.asr.recognizer.model.RecognitionError;
 import br.com.cpqd.asr.recognizer.model.RecognitionResult;
+import br.com.cpqd.asr.recognizer.model.RecognitionResultCode;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
 
@@ -59,26 +64,83 @@ public class RecognizerBuilderTest {
         try {
             String url = "abcdasr";
             SpeechRecognizer.builder().serverURL(url).build(mContext);
-            fail("URISyntaxException expected");
+            fail("URISyntaxException was expected");
         } catch (URISyntaxException e) {
-            assertTrue(e.getMessage(), true);
+            assertNotNull(e.getMessage());
+            System.out.println("### URISyntaxException is expected.");
         } catch (Exception e) {
             e.printStackTrace();
-            fail("URISyntaxException expected, instead of " + e.getCause());
+            fail("URISyntaxException was expected, not: " + e.getCause());
+        }
+    }
+
+    @Test
+    public void credentialValid() {
+        try {
+            SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL)
+                    .credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("No exception was expected");
+        }
+    }
+
+    @Test
+    public void credentialInvalid() throws IOException {
+        try {
+            SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL)
+                    .credentials("blabla", "blublu").build(mContext);
+            fail("IOException expected");
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("IOException expected, instead of " + e.getCause());
+        }
+    }
+
+    @Test
+    public void credentialNull() {
+        try {
+            SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL)
+                    .credentials(null, null).build(mContext);
+            fail("NullPointerException was expected");
+        } catch (NullPointerException e) {
+            assertNotNull(e.getMessage());
+            System.out.println("### NullPointerException is expected.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("NullPointerException was expected, not: " + e.getCause());
         }
     }
 
     @Test
     public void recogConfig() {
-        int numberOfSentences = 3;
         try {
-            RecognitionConfig recognitionConfig = RecognitionConfig.builder().maxSentences(numberOfSentences).build();
-            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
+            RecognitionConfig recognitionConfig = RecognitionConfig.builder()
+                    .confidenceThreshold(100)
+                    .continuousMode(false)
+                    .endPointerAutoLevelLen(350)
+                    .endPointerLevelMode(0)
+                    .endPointerLevelThreshold(4)
+                    .headMarginMilis(250)
+                    .maxSentences(3)
+                    .noInputTimeoutEnabled(false)
+                    .noInputTimeoutMilis(2000)
+                    .recognitionTimeoutEnabled(false)
+                    .recognitionTimeoutSeconds(65000)
+                    .startInputTimers(false)
+                    .tailMarginMilis(450)
+                    .waitEndMilis(900)
+                    .build();
+
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal)
                     .recogConfig(recognitionConfig).build(mContext);
+
             AudioSource audio = new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio));
             recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
-            assertTrue("Number of alternatives is " + numberOfSentences, results.get(0).getAlternatives().size() == numberOfSentences);
+
+            Assert.assertEquals("Result Status is not the expected.", RecognitionResultCode.NO_MATCH, results.get(0).getResultCode());
+            Assert.assertEquals("Number of alternatives is not the expected.", 0, results.get(0).getAlternatives().size());
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
@@ -97,17 +159,17 @@ public class RecognizerBuilderTest {
         final int pos2 = 1;
 
         try {
-            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal)
                     .recogConfig(RecognitionConfig.builder().build()).addListener(new RecognitionListener() {
-
-                        @Override
-                        public void onSpeechStop(Integer time) {
-                            stopCounter[pos1]++;
-                        }
 
                         @Override
                         public void onSpeechStart(Integer time) {
                             startCounter[pos1]++;
+                        }
+
+                        @Override
+                        public void onSpeechStop(Integer time) {
+                            stopCounter[pos1]++;
                         }
 
                         @Override
@@ -131,13 +193,13 @@ public class RecognizerBuilderTest {
                     }).addListener(new RecognitionListener() {
 
                         @Override
-                        public void onSpeechStop(Integer time) {
-                            stopCounter[pos2]++;
+                        public void onSpeechStart(Integer time) {
+                            startCounter[pos2]++;
                         }
 
                         @Override
-                        public void onSpeechStart(Integer time) {
-                            startCounter[pos2]++;
+                        public void onSpeechStop(Integer time) {
+                            stopCounter[pos2]++;
                         }
 
                         @Override
@@ -161,17 +223,46 @@ public class RecognizerBuilderTest {
                     }).build(mContext);
 
             AudioSource audio = new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio));
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.PizzaGramHttp).build());
             recognizer.waitRecognitionResult();
-            assertTrue("Compare start counter", startCounter[pos1] == startCounter[pos2]);
-            assertTrue("Compare stop counter", stopCounter[pos1] == stopCounter[pos2]);
-            assertTrue("Compare listen counter", listeningCounter[pos1] == listeningCounter[pos2]);
-            assertTrue("Compare partial counter", partialCounter[pos1] == partialCounter[pos2]);
-            assertTrue("Compare final counter", finalCounter[pos1] == finalCounter[pos2]);
+            int i;
+            for (i = pos1; i <= pos2; i++) {
+                assertEquals("Listen counter was not incremented.", 1, listeningCounter[i]);
+                assertEquals("Final counter was not incremented.", 1, finalCounter[i]);
+                assertEquals("Start counter was not incremented.", 1, startCounter[i]);
+                assertEquals("Stop counter was not incremented.", 1, stopCounter[i]);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
         }
+    }
+
+    @Test
+    public void MaxWaitSeconds() {
+
+        int maxWaitSec = 1;
+        long startTimeMS,stopTimeMS, elapsedTimeMS;
+
+        startTimeMS = System.currentTimeMillis();
+        try {
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal).maxWaitSeconds(maxWaitSec).build(mContext);
+            AudioSource audio = new FileAudioSource(mContext.getAssets().open(TestConstants.BigAudio));
+
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            recognizer.waitRecognitionResult();
+
+        } catch (RecognitionException e) {
+            System.out.println("### RecognitionException is expected.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("RecognitionException was expected, not: " + e.getMessage());
+        }
+
+        stopTimeMS = System.currentTimeMillis();
+        elapsedTimeMS = stopTimeMS - startTimeMS;
+        System.out.println("### Elapsed Time is: " + elapsedTimeMS + " ms");
+        assertTrue("Recognition time must be smaller than maxWait", elapsedTimeMS <= (maxWaitSec*1000)*1.1);
     }
 }

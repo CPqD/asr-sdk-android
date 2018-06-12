@@ -23,16 +23,19 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.List;
 
 import br.com.cpqd.asr.recognizer.audio.AudioSource;
 import br.com.cpqd.asr.recognizer.audio.BufferAudioSource;
 import br.com.cpqd.asr.recognizer.audio.FileAudioSource;
+import br.com.cpqd.asr.recognizer.model.Interpretation;
 import br.com.cpqd.asr.recognizer.model.LanguageModelList;
 import br.com.cpqd.asr.recognizer.model.RecognitionConfig;
 import br.com.cpqd.asr.recognizer.model.RecognitionResult;
 import br.com.cpqd.asr.recognizer.model.RecognitionResultCode;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -40,328 +43,207 @@ import static org.junit.Assert.fail;
 public class SpeechRecognizerTest {
 
     private static final Context mContext = InstrumentationRegistry.getTargetContext();
+    int defaultPacketDelay = 100;
 
     @Test
     public void basicGrammar() {
 
-        SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal).build(mContext);
             AudioSource audio = new FileAudioSource(mContext.getAssets().open(TestConstants.CpfAudio));
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.CpfLanguageModel).build());
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.CpfGramHttp).build());
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
+            List<Interpretation> interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
 
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() > 0);
-            assertTrue("Score is higher than 90", results.get(0).getAlternatives().get(0).getConfidence() > 90);
-            assertTrue("Result is recognized", results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
-            assertTrue("Contains interpretation",
-                    results.get(0).getAlternatives().get(0).getInterpretations().size() > 0);
+            String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            String firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Recognized Text is not the expected.", TestConstants.CpfText, textFromFirstAlternative);
+            assertEquals("Interpretation is not the expected.", TestConstants.CpfInterp, firstInterpFromFirstAlt);
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
-        } finally {
-            try {
-                if (recognizer != null)
-                    recognizer.close();
-            } catch (Exception e) {
-                //ignore
-            }
         }
     }
 
     @Test
     public void basicSLM() {
 
-        SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
-            AudioSource audio = new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio));
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal).build(mContext);
+            AudioSource audio = new FileAudioSource(mContext.getAssets().open(TestConstants.NoEndSilenceAudio));
             recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() > 0);
-            assertTrue("Score is higher than 90", results.get(0).getAlternatives().get(0).getConfidence() > 90);
-            assertTrue("Result is recognized", results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
+            String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Recognized Text is not the expected.", TestConstants.NoEndSilenceText, textFromFirstAlternative);
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
-        } finally {
-            try {
-                if (recognizer != null)
-                    recognizer.close();
-            } catch (Exception e) {
-                //ignore
-            }
         }
     }
 
     @Test
     public void noMatchGrammar() {
 
-        SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal).build(mContext);
             AudioSource audio = new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio));
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.NumberLanguageModel).build());
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.CpfGramHttp).build());
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() == 0);
-            assertTrue("Result is " + results.get(0).getResultCode(),
-                    results.get(0).getResultCode() == RecognitionResultCode.NO_MATCH);
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.NO_MATCH, results.get(0).getResultCode());
+            assertEquals("Number of alternatives is not the expected.", 0, results.get(0).getAlternatives().size());
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
-        } finally {
-            try {
-                if (recognizer != null)
-                    recognizer.close();
-            } catch (Exception e) {
-                //ignore
-            }
         }
     }
 
     @Test
     public void noSpeech() {
 
-        SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal).build(mContext);
             AudioSource audio = new FileAudioSource(mContext.getAssets().open(TestConstants.SilenceAudio));
             recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
-            assertTrue("Number of alternatives is 0", results.get(0).getAlternatives().size() == 0);
-            assertTrue("Result is " + results.get(0).getResultCode(),
-                    results.get(0).getResultCode() == RecognitionResultCode.NO_SPEECH);
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.NO_SPEECH, results.get(0).getResultCode());
+            assertEquals("Number of alternatives is not the expected.", 0, results.get(0).getAlternatives().size());
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
-        } finally {
-            try {
-                if (recognizer != null)
-                    recognizer.close();
-            } catch (Exception e) {
-                //ignore
-            }
         }
     }
 
     @Test
     public void noInputTimeout() {
-        int packetDelay = 130;
+
         int noInputTimeout = 2000;
 
-        SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal)
                     .recogConfig(RecognitionConfig.builder().noInputTimeoutEnabled(true)
                             .noInputTimeoutMilis(noInputTimeout).startInputTimers(true).build())
                     .build(mContext);
 
             BufferAudioSource audio = new BufferAudioSource();
-            InputStream input = mContext.getAssets().open(TestConstants.SilenceAudio);
             recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
-
-            // faz a leitura do arquivo e escreve no AudioSource
-            byte[] buffer = new byte[1600]; // segmento de 100 ms (tx 8kHz)
-            int len;
-            boolean keepWriting = true;
-            while ((len = input.read(buffer)) != -1 && keepWriting) {
-                // atrasa o envio do proximo segmento para estourar a temporização de inicio de
-                // fala
-                Thread.sleep(packetDelay);
-                keepWriting = audio.write(buffer, len);
-            }
-            input.close();
-            audio.finish();
+            WriteToBufferAudioSource(audio, TestConstants.SilenceAudio, defaultPacketDelay);
 
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() == 0);
-            assertTrue("Result is " + results.get(0).getResultCode(),
-                    results.get(0).getResultCode() == RecognitionResultCode.NO_INPUT_TIMEOUT);
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.NO_INPUT_TIMEOUT, results.get(0).getResultCode());
+            assertEquals("Number of alternatives is not the expected.", 0, results.get(0).getAlternatives().size());
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
-        } finally {
-            try {
-                if (recognizer != null)
-                    recognizer.close();
-            } catch (Exception e) {
-                // ignore
-            }
         }
     }
 
     @Test
     public void recognizeBufferAudioSource() {
-        int packetDelay = 90;
 
-        SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal).build(mContext);
 
             BufferAudioSource audio = new BufferAudioSource();
-            InputStream input = mContext.getAssets().open(TestConstants.PizzaVegAudio);
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.PizzaGramHttp).build());
+            WriteToBufferAudioSource(audio, TestConstants.PizzaVegAudio, defaultPacketDelay);
 
-            // faz a leitura do arquivo e escreve no AudioSource
-            byte[] buffer = new byte[1600]; // segmento de 100 ms (tx 8kHz)
-            int len;
-            boolean keepWriting = true;
-            while ((len = input.read(buffer)) != -1 && keepWriting) {
-                // atrasa o envio do proximo segmento para simular uma captura de audio em tempo
-                // real.
-                Thread.sleep(packetDelay);
-                keepWriting = audio.write(buffer, len);
-            }
-            input.close();
-            audio.finish();
+            List<RecognitionResult> results = recognizer.waitRecognitionResult();
+            List<Interpretation> interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
 
-            List<RecognitionResult> results = recognizer.waitRecognitionResult(10);
+            String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            String firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
 
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() == 1);
-            assertTrue("Result is " + results.get(0).getResultCode(),
-                    results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
+
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Recognized Text is not the expected.", TestConstants.PizzaVegText, textFromFirstAlternative);
+            assertEquals("Interpretation is not the expected.", TestConstants.PizzaVegInterp, firstInterpFromFirstAlt);
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
-        } finally {
-            try {
-                if (recognizer != null)
-                    recognizer.close();
-            } catch (Exception e) {
-                // ignore
-            }
         }
     }
 
     @Test
     public void recognizeBufferBlockRead() {
-        int packetDelay = 100; // delay grande para bloquear a thread de leitura
-        int noInputTimeout = 8000;
 
-        SpeechRecognizerInterface recognizer = null;
+        int noInputTimeout = 15000;
+        int maxSentences = 2;
+
         try {
-            recognizer = SpeechRecognizer.builder()
-                    .serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
-                    .recogConfig(RecognitionConfig.builder().noInputTimeoutEnabled(true).noInputTimeoutMilis(noInputTimeout).startInputTimers(true).build())
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal)
+                    .recogConfig(RecognitionConfig.builder().noInputTimeoutEnabled(true)
+                            .noInputTimeoutMilis(noInputTimeout).startInputTimers(true).maxSentences(maxSentences).build())
                     .build(mContext);
 
             BufferAudioSource audio = new BufferAudioSource();
-            InputStream input = mContext.getAssets().open(TestConstants.PizzaVegAudio);
             recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            WriteToBufferAudioSource(audio, TestConstants.PizzaVegAudio, 2 * defaultPacketDelay);
 
-            // faz a leitura do arquivo e escreve no AudioSource
-            byte[] buffer = new byte[1600]; // segmento de 100 ms (tx 8kHz)
-            int len;
-            boolean keepWriting = true;
-            while ((len = input.read(buffer)) != -1 && keepWriting) {
-                // atrasa o envio do proximo segmento
-                Thread.sleep(packetDelay);
-                keepWriting = audio.write(buffer, len);
-            }
-            input.close();
-            audio.finish();
+            List<RecognitionResult> results = recognizer.waitRecognitionResult(noInputTimeout);
+            String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
 
-            List<RecognitionResult> results = recognizer.waitRecognitionResult(10);
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Number of alternatives is not the expected.", maxSentences, results.get(0).getAlternatives().size());
+            assertEquals("Recognized Text is not the expected.", TestConstants.PizzaVegText, textFromFirstAlternative);
 
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() == 1);
-
-            assertTrue("Result is " + results.get(0).getResultCode(),
-                    results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
-        } finally {
-            try {
-                if (recognizer != null)
-                    recognizer.close();
-            } catch (Exception e) {
-                // ignore
-            }
         }
     }
 
     @Test
     public void recognizeMaxWaitSeconds() {
-        // utiliza um tempo de espera muito curto e audio grande para forçar o timeout
-        int maxWait = 1;
-        int packetDelay = 50;
 
-        SpeechRecognizerInterface recognizer = null;
+        // Use wait timer very short to force timeout
+        int maxWait = 1;
+        long startTimeMS,stopTimeMS, elapsedTimeMS;
+
+        startTimeMS = System.currentTimeMillis();
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).maxWaitSeconds(maxWait).build(mContext);
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal).build(mContext);
 
             BufferAudioSource audio = new BufferAudioSource();
-            InputStream input = mContext.getAssets().open(TestConstants.PizzaVegAudio);
             recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            WriteToBufferAudioSource(audio, TestConstants.NoEndSilenceAudio, defaultPacketDelay);
 
-            // faz a leitura do arquivo e escreve no AudioSource
-            byte[] buffer = new byte[1600]; // segmento de 100 ms (tx 8kHz)
-            int len;
-            boolean keepWriting = true;
-            while ((len = input.read(buffer)) != -1 && keepWriting) {
-                Thread.sleep(packetDelay);
-                keepWriting = audio.write(buffer, len);
-            }
-            input.close();
-            audio.finish();
-
-            recognizer.waitRecognitionResult();
-
-            fail("Timeout expected");
+            recognizer.waitRecognitionResult(maxWait);
+            // There is no assert hear, because de debug from the last assert is more useful
         } catch (RecognitionException e) {
-            assertTrue("Recognition timeout", true);
+            System.out.println("### RecognitionException is expected.");
         } catch (Exception e) {
             e.printStackTrace();
-            fail("Test failed: " + e.getMessage());
-        } finally {
-            try {
-                if (recognizer != null)
-                    recognizer.close();
-            } catch (Exception e) {
-                // ignore
-            }
+            fail("Test failed, because RecognitionException was expected, not: " + e.getMessage());
         }
+
+        stopTimeMS = System.currentTimeMillis();
+        elapsedTimeMS = stopTimeMS - startTimeMS;
+        System.out.println("### Elapsed Time is: " + elapsedTimeMS + " ms");
+        assertTrue("Recognition time must be smaller than " + maxWait + " seconds", elapsedTimeMS <= (maxWait*1000)*1.1);
     }
 
     @Test
-    public void closeWhileRecognizing() {
-        int packetDelay = 100;
+    public void closeWhileRecognize() {
 
-        SpeechRecognizerInterface recognizer;
-        try (InputStream input = mContext.getAssets().open(TestConstants.PizzaVegAudio)) {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
+        try {
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal).build(mContext);
 
             BufferAudioSource audio = new BufferAudioSource();
             recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            WriteToBufferAudioSource(audio, TestConstants.NoEndSilenceAudio, defaultPacketDelay);
 
-            // faz a leitura do arquivo e escreve no AudioSource
-            byte[] buffer = new byte[1600]; // segmento de 100 ms (tx 8kHz)
-            int len;
-            int counter = 2;
-            while ((len = input.read(buffer)) != -1 && counter > 0) {
-                Thread.sleep(packetDelay);
-                audio.write(buffer, len);
-                // conta quantos pacotes sao enviados para interromper
-                counter--;
-            }
-
-            // fecha a conexao no meio do reconhecimento
             recognizer.close();
 
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
-            assertTrue("Result is " + (results.isEmpty() ? "empty" : Integer.toString(results.size())), results.isEmpty());
-        } catch (RecognitionException e) {
-            fail("Empty result expected");
+            assertTrue("Result is not empty.", results.isEmpty());
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
@@ -371,17 +253,14 @@ public class SpeechRecognizerTest {
     @Test
     public void closeWithoutRecognize() {
 
-        SpeechRecognizerInterface recognizer;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal).build(mContext);
 
             recognizer.close();
 
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
-            assertTrue("Result is " + (results.isEmpty() ? "empty" : Integer.toString(results.size())), results.isEmpty());
-        } catch (RecognitionException e) {
-            fail("Empty result expected");
+            assertTrue("Result is not empty.", results.isEmpty());
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
@@ -390,426 +269,414 @@ public class SpeechRecognizerTest {
 
     @Test
     public void cancelWhileRecognize() {
-        int packetDelay = 100;
 
-        SpeechRecognizerInterface recognizer = null;
-        try (InputStream input = mContext.getAssets().open(TestConstants.PizzaVegAudio)) {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
+        try {
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal).build(mContext);
             BufferAudioSource audio = new BufferAudioSource();
-
             recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
-
-            // faz a leitura do arquivo e escreve no AudioSource
-            byte[] buffer = new byte[1600]; // segmento de 100 ms (tx 8kHz)
-            int len;
-            int counter = 2;
-            while ((len = input.read(buffer)) != -1 && counter > 0) {
-                Thread.sleep(packetDelay);
-                audio.write(buffer, len);
-                // conta quantos pacotes sao enviados para interromper
-                counter--;
-            }
+            WriteToBufferAudioSource(audio, TestConstants.NoEndSilenceAudio, defaultPacketDelay);
 
             recognizer.cancelRecognition();
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
-            assertTrue("Result is " + (results.isEmpty() ? "empty" : Integer.toString(results.size())),
-                    results.isEmpty());
-        } catch (RecognitionException e) {
-            fail("Empty result expected");
+            assertTrue("Result is not empty.", results.isEmpty());
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
-        } finally {
-            try {
-                if (recognizer != null)
-                    recognizer.close();
-            } catch (Exception e) {
-                // ignore
-            }
         }
     }
 
     @Test
     public void cancelNoRecognize() {
 
-        SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal).build(mContext);
             recognizer.cancelRecognition();
-            assertTrue("Normal return", true);
-
-        } catch (RecognitionException e) {
-            fail("Failure: " + e.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
-        } finally {
-            try {
-                if (recognizer != null)
-                    recognizer.close();
-            } catch (Exception e) {
-                // ignore
-            }
         }
     }
 
     @Test
     public void waitNoRecognize() {
 
-        SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal).build(mContext);
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
-            assertTrue("Result is " + (results.isEmpty() ? "empty" : Integer.toString(results.size())),
-                    results.isEmpty());
-        } catch (RecognitionException e) {
-            fail("Failure: " + e.getMessage());
+            assertTrue("Result is not empty.", results.isEmpty());
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
-        } finally {
-            try {
-                if (recognizer != null)
-                    recognizer.close();
-            } catch (Exception e) {
-                // ignore
-            }
         }
     }
 
     @Test
     public void waitRecognitionResultDuplicate() {
 
-        SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
-            AudioSource audio = new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio));
-            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal).build(mContext);
+            AudioSource audio = new FileAudioSource(mContext.getAssets().open(TestConstants.CpfAudio));
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.CpfGramHttp).build());
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
+            List<Interpretation> interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
 
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() > 0);
-            assertTrue("Score is higher than 90", results.get(0).getAlternatives().get(0).getConfidence() > 90);
-            assertTrue("Result is recognized", results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
+            String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            String firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
 
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Recognized Text is not the expected.", TestConstants.CpfText, textFromFirstAlternative);
+            assertEquals("Interpretation is not the expected.", TestConstants.CpfInterp, firstInterpFromFirstAlt);
+
+            long startTimeMS, elapsedTimeMS;
+
+            startTimeMS = System.currentTimeMillis();
             results = recognizer.waitRecognitionResult();
-            assertTrue("Result is " + (results.isEmpty() ? "empty" : Integer.toString(results.size())),
-                    results.isEmpty());
+            elapsedTimeMS = System.currentTimeMillis() - startTimeMS;
+
+            assertTrue("Elapsed time should be very short.", elapsedTimeMS < 10);
+            assertTrue("Result is not empty.", results.isEmpty());
+
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
-        } finally {
-            try {
-                if (recognizer != null)
-                    recognizer.close();
-            } catch (Exception e) {
-                // ignore
-            }
         }
     }
 
     @Test
     public void duplicateRecognize() {
 
-        SpeechRecognizerInterface recognizer = null;
-        try (InputStream input = mContext.getAssets().open(TestConstants.PizzaVegAudio)) {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
+        try {
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal).build(mContext);
 
             BufferAudioSource audio = new BufferAudioSource();
-
             recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            WriteToBufferAudioSource(audio, TestConstants.NoEndSilenceAudio, defaultPacketDelay);
 
-            // faz a leitura do arquivo e escreve no AudioSource
-            byte[] buffer = new byte[1600]; // segmento de 100 ms (tx 8kHz)
-            int len;
-            int counter = 1;
-            while ((len = input.read(buffer)) != -1 && counter > 0) {
-                audio.write(buffer, len);
-                // conta quantos pacotes sao enviados para interromper
-                counter--;
-            }
-
+            Thread.sleep(1500);
             try {
                 recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            } catch (RecognitionException e) {
+                System.out.println("### RecognitionException is expected.");
             } catch (Exception e) {
-                assertTrue("Failure expected", true);
+                e.printStackTrace();
+                fail("RecognitionException was expected, not: " + e.getMessage());
             }
 
-            // continua a enviar o audio
-            while ((len = input.read(buffer)) != -1) {
-                audio.write(buffer, len);
-            }
+            // Send silence to finish the recognition
+            WriteToBufferAudioSource(audio, TestConstants.SilenceAudio, defaultPacketDelay);
+
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
+            String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
 
-            assertTrue("Score is higher than 90", results.get(0).getAlternatives().get(0).getConfidence() > 90);
-            assertTrue("Result is recognized", results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
-        } catch (RecognitionException e) {
-            fail("Empty result expected");
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Recognized Text is not the expected.",TestConstants.NoEndSilenceText ,textFromFirstAlternative);
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
-        } finally {
-            try {
-                if (recognizer != null)
-                    recognizer.close();
-            } catch (Exception e) {
-                // ignore
-            }
         }
     }
 
     @Test
     public void multipleRecognize() {
 
-        int maxSessionIdleSeconds = 5;
-        SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
-                    .maxSessionIdleSeconds(maxSessionIdleSeconds).build(mContext);
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal)
+                    .connectOnRecognize(false).autoClose(false).build(mContext);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
-                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
-            List<RecognitionResult> results = recognizer.waitRecognitionResult();
+            BufferAudioSource audioBuffer1 = new BufferAudioSource();
+            BufferAudioSource audioBuffer2 = new BufferAudioSource();
+            BufferAudioSource audioBuffer3 = new BufferAudioSource();
+            FileAudioSource audioFile = new FileAudioSource(mContext.getAssets().open(TestConstants.NoEndSilenceAudio));
+            FileAudioSource audioSilenceFile = new FileAudioSource(mContext.getAssets().open(TestConstants.SilenceAudio));
 
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() > 0);
-            assertTrue("Score is higher than 90", results.get(0).getAlternatives().get(0).getConfidence() > 90);
-            assertTrue("Result is recognized", results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
+            List<RecognitionResult> results;
+            List<Interpretation> interpretationsFromFirstAlt;
+            String textFromFirstAlternative, firstInterpFromFirstAlt;
 
-            // aguarda e repete o recog
-            Thread.sleep(4000);
-
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
-                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            System.out.println("### Recognition #1");
+            recognizer.recognize(audioFile, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             results = recognizer.waitRecognitionResult();
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() > 0);
-            assertTrue("Score is higher than 90", results.get(0).getAlternatives().get(0).getConfidence() > 90);
-            assertTrue("Result is recognized", results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
 
-            // aguarda e repete o recog
-            Thread.sleep(4000);
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Recognized Text is not the expected.", TestConstants.NoEndSilenceText, textFromFirstAlternative);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
-                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            System.out.println("### Recognition #2");
+            recognizer.recognize(audioBuffer1, LanguageModelList.builder().addFromURI(TestConstants.CpfGramHttp).build());
+            WriteToBufferAudioSource(audioBuffer1, TestConstants.CpfAudio, defaultPacketDelay);
             results = recognizer.waitRecognitionResult();
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() > 0);
-            assertTrue("Score is higher than 90", results.get(0).getAlternatives().get(0).getConfidence() > 90);
-            assertTrue("Result is recognized", results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
 
-            // força o timeout
-            Thread.sleep(6000);
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
+            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Recognized Text is not the expected.", TestConstants.CpfText, textFromFirstAlternative);
+            assertEquals("Interpretation is not the expected.", TestConstants.CpfInterp, firstInterpFromFirstAlt);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
-                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            System.out.println("### Recognition #3");
+            recognizer.recognize(audioSilenceFile, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             results = recognizer.waitRecognitionResult();
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() > 0);
-            assertTrue("Score is higher than 90", results.get(0).getAlternatives().get(0).getConfidence() > 90);
-            assertTrue("Result is recognized", results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
 
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.NO_SPEECH, results.get(0).getResultCode());
+            assertEquals("Number of alternatives is not the expected.", 0, results.get(0).getAlternatives().size());
+
+            System.out.println("### Recognition #4");
+            recognizer.recognize(audioBuffer2, LanguageModelList.builder().addFromURI(TestConstants.PizzaGramHttp).build());
+            WriteToBufferAudioSource(audioBuffer2, TestConstants.PizzaVegAudio, defaultPacketDelay);
+            results = recognizer.waitRecognitionResult();
+
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
+            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Recognized Text is not the expected.", TestConstants.PizzaVegText, textFromFirstAlternative);
+            assertEquals("Interpretation is not the expected.", TestConstants.PizzaVegInterp, firstInterpFromFirstAlt);
+
+            System.out.println("### Recognition #5");
+            Thread.sleep(5000);
+            recognizer.recognize(audioBuffer3, LanguageModelList.builder().addFromURI(TestConstants.BankGramHttp).build());
+            WriteToBufferAudioSource(audioBuffer3, TestConstants.BancoTransfiraAudio, defaultPacketDelay);
+            results = recognizer.waitRecognitionResult();
+
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Recognized Text is not the expected.", TestConstants.BancoTransfiraText, textFromFirstAlternative);
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
-        } finally {
-            try {
-                if (recognizer != null)
-                    recognizer.close();
-            } catch (Exception e) {
-                // ignore
-            }
         }
     }
 
     @Test
     public void multiplesConnectOnRecognize() {
-        int maxSessionIdleSeconds = 5;
 
-        SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
-                    .maxSessionIdleSeconds(maxSessionIdleSeconds).connectOnRecognize(true).build(mContext);
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal)
+                    .connectOnRecognize(true).autoClose(false).build(mContext);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
-                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
-            List<RecognitionResult> results = recognizer.waitRecognitionResult();
+            BufferAudioSource audioBuffer1 = new BufferAudioSource();
+            BufferAudioSource audioBuffer2 = new BufferAudioSource();
+            BufferAudioSource audioBuffer3 = new BufferAudioSource();
+            FileAudioSource audioFile1 = new FileAudioSource(mContext.getAssets().open(TestConstants.BancoTransfiraAudio));
+            FileAudioSource audioFile2 = new FileAudioSource(mContext.getAssets().open(TestConstants.NoEndSilenceAudio));
 
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() > 0);
-            assertTrue("Score is higher than 90", results.get(0).getAlternatives().get(0).getConfidence() > 90);
-            assertTrue("Result is recognized", results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
+            List<RecognitionResult> results;
+            List<Interpretation> interpretationsFromFirstAlt;
+            String textFromFirstAlternative, firstInterpFromFirstAlt;
 
-            // aguarda e repete o recog
-            Thread.sleep(4000);
-
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
-                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            System.out.println("### Recognition #1");
+            recognizer.recognize(audioBuffer1, LanguageModelList.builder().addFromURI(TestConstants.CpfGramHttp).build());
+            WriteToBufferAudioSource(audioBuffer1, TestConstants.CpfAudio, defaultPacketDelay);
             results = recognizer.waitRecognitionResult();
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() > 0);
-            assertTrue("Score is higher than 90", results.get(0).getAlternatives().get(0).getConfidence() > 90);
-            assertTrue("Result is recognized", results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
 
-            // aguarda e repete o recog
-            Thread.sleep(4000);
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
+            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Recognized Text is not the expected.", TestConstants.CpfText, textFromFirstAlternative);
+            assertEquals("Interpretation is not the expected.", TestConstants.CpfInterp, firstInterpFromFirstAlt);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
-                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            System.out.println("### Recognition #2");
+            recognizer.recognize(audioBuffer2, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            WriteToBufferAudioSource(audioBuffer2, TestConstants.SilenceAudio, defaultPacketDelay);
             results = recognizer.waitRecognitionResult();
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() > 0);
-            assertTrue("Score is higher than 90", results.get(0).getAlternatives().get(0).getConfidence() > 90);
-            assertTrue("Result is recognized", results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
 
-            // força o timeout
-            Thread.sleep(6000);
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.NO_INPUT_TIMEOUT, results.get(0).getResultCode());
+            assertEquals("Number of alternatives is not the expected.", 0, results.get(0).getAlternatives().size());
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
-                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            System.out.println("### Recognition #3");
+            recognizer.recognize(audioFile1, LanguageModelList.builder().addFromURI(TestConstants.BankGramHttp).build());
             results = recognizer.waitRecognitionResult();
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() > 0);
-            assertTrue("Score is higher than 90", results.get(0).getAlternatives().get(0).getConfidence() > 90);
-            assertTrue("Result is recognized", results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
 
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
+            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Recognized Text is not the expected.", TestConstants.BancoTransfiraText, textFromFirstAlternative);
+            assertEquals("Interpretation is not the expected.", TestConstants.BancoTransfiraInterp, firstInterpFromFirstAlt);
+
+            System.out.println("### Recognition #4");
+            recognizer.recognize(audioBuffer3, LanguageModelList.builder().addFromURI(TestConstants.BankGramHttp).build());
+            WriteToBufferAudioSource(audioBuffer3, TestConstants.BancoTransfiraAudio, defaultPacketDelay);
+            results = recognizer.waitRecognitionResult();
+
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
+            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Recognized Text is not the expected.", TestConstants.BancoTransfiraText, textFromFirstAlternative);
+            assertEquals("Interpretation is not the expected.", TestConstants.BancoTransfiraInterp, firstInterpFromFirstAlt);
+
+            System.out.println("### Recognition #5");
+            Thread.sleep(5000);
+            recognizer.recognize(audioFile2, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            results = recognizer.waitRecognitionResult();
+
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Recognized Text is not the expected.", TestConstants.NoEndSilenceText, textFromFirstAlternative);
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
-        } finally {
-            try {
-                if (recognizer != null)
-                    recognizer.close();
-            } catch (Exception e) {
-                // ignore
-            }
         }
     }
 
     @Test
     public void multiplesAutoClose() {
-        int maxSessionIdleSeconds = 5;
 
-        SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
-                    .maxSessionIdleSeconds(maxSessionIdleSeconds).autoClose(true).build(mContext);
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal)
+                    .recogConfig(RecognitionConfig.builder().recognitionTimeoutEnabled(true)
+                            .recognitionTimeoutSeconds(5000).startInputTimers(true).build())
+                    .connectOnRecognize(true).autoClose(true).build(mContext);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
-                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
-            List<RecognitionResult> results = recognizer.waitRecognitionResult();
+            BufferAudioSource audioBuffer1 = new BufferAudioSource();
+            BufferAudioSource audioBuffer2 = new BufferAudioSource();
+            FileAudioSource audioFile1 = new FileAudioSource(mContext.getAssets().open(TestConstants.BancoTransfiraAudio));
+            FileAudioSource audioFile2 = new FileAudioSource(mContext.getAssets().open(TestConstants.NoEndSilenceAudio));
+            FileAudioSource audioFile3 = new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio));
 
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() > 0);
-            assertTrue("Score is higher than 90", results.get(0).getAlternatives().get(0).getConfidence() > 90);
-            assertTrue("Result is recognized", results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
+            List<RecognitionResult> results;
+            List<Interpretation> interpretationsFromFirstAlt;
+            String textFromFirstAlternative, firstInterpFromFirstAlt;
 
-            // aguarda e repete o recog
-            Thread.sleep(5000);
-
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
-                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            System.out.println("### Recognition #1");
+            recognizer.recognize(audioFile1, LanguageModelList.builder().addFromURI(TestConstants.BankGramHttp).build());
             results = recognizer.waitRecognitionResult();
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() > 0);
-            assertTrue("Score is higher than 90", results.get(0).getAlternatives().get(0).getConfidence() > 90);
-            assertTrue("Result is recognized", results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
 
-            // aguarda e repete o recog
-            Thread.sleep(5000);
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
+            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Recognized Text is not the expected.", TestConstants.BancoTransfiraText, textFromFirstAlternative);
+            assertEquals("Interpretation is not the expected.", TestConstants.BancoTransfiraInterp, firstInterpFromFirstAlt);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
-                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            System.out.println("### Recognition #2");
+            recognizer.recognize(audioBuffer1, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            WriteToBufferAudioSource(audioBuffer1, TestConstants.BigAudio, 2 * defaultPacketDelay);
             results = recognizer.waitRecognitionResult();
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() > 0);
-            assertTrue("Score is higher than 90", results.get(0).getAlternatives().get(0).getConfidence() > 90);
-            assertTrue("Result is recognized", results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
 
-            // força o timeout
-            Thread.sleep(5000);
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNITION_TIMEOUT, results.get(0).getResultCode());
+            assertEquals("Number of alternatives is not the expected.", 0, results.get(0).getAlternatives().size());
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
-                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            System.out.println("### Recognition #3");
+            recognizer.recognize(audioFile2, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             results = recognizer.waitRecognitionResult();
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() > 0);
-            assertTrue("Score is higher than 90", results.get(0).getAlternatives().get(0).getConfidence() > 90);
-            assertTrue("Result is recognized", results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
 
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Recognized Text is not the expected.", TestConstants.NoEndSilenceText, textFromFirstAlternative);
+
+
+            System.out.println("### Recognition #4");
+            recognizer.recognize(audioBuffer2, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            WriteToBufferAudioSource(audioBuffer2, TestConstants.NoEndSilenceAudio, 2 * defaultPacketDelay);
+            results = recognizer.waitRecognitionResult();
+
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNITION_TIMEOUT, results.get(0).getResultCode());
+            assertEquals("Number of alternatives is not the expected.", 0, results.get(0).getAlternatives().size());
+
+            System.out.println("### Recognition #5");
+            Thread.sleep(5000);
+            recognizer.recognize(audioFile3, LanguageModelList.builder().addFromURI(TestConstants.PizzaGramHttp).build());
+            results = recognizer.waitRecognitionResult();
+
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
+            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Recognized Text is not the expected.", TestConstants.PizzaVegText, textFromFirstAlternative);
+            assertEquals("Interpretation is not the expected.", TestConstants.PizzaVegInterp, firstInterpFromFirstAlt);
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
-        } finally {
-            try {
-                if (recognizer != null)
-                    recognizer.close();
-            } catch (Exception e) {
-                // ignore
-            }
         }
     }
 
     @Test
     public void recogAfterSessionTimeout() {
-        int maxSessionIdleSeconds = 2;
 
-        SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
-                    .maxSessionIdleSeconds(maxSessionIdleSeconds).connectOnRecognize(false).autoClose(false).build(mContext);
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal).build(mContext);
 
-            // aguarda o timeout e repete o recog
-            Thread.sleep(4000);
+            List<RecognitionResult> results;
+            List<Interpretation> interpretationsFromFirstAlt;
+            String textFromFirstAlternative, firstInterpFromFirstAlt;
+            long startTimeMS, elapsedTimeMS;
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.PizzaVegAudio)),
-                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
-            List<RecognitionResult> results = recognizer.waitRecognitionResult();
+            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.BancoTransfiraAudio)),
+                    LanguageModelList.builder().addFromURI(TestConstants.BankGramHttp).build());
 
-            assertTrue("Number of alternatives is " + results.get(0).getAlternatives().size(),
-                    results.get(0).getAlternatives().size() > 0);
-            assertTrue("Score is higher than 90", results.get(0).getAlternatives().get(0).getConfidence() > 90);
-            assertTrue("Result is recognized", results.get(0).getResultCode() == RecognitionResultCode.RECOGNIZED);
+            Thread.sleep(6500);
 
+            startTimeMS = System.currentTimeMillis();
+            results = recognizer.waitRecognitionResult();
+            elapsedTimeMS = System.currentTimeMillis() - startTimeMS;
+
+            assertTrue("Elapsed time should be very short.", elapsedTimeMS < 10);
+
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
+            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Recognized Text is not the expected.", TestConstants.BancoTransfiraText, textFromFirstAlternative);
+            assertEquals("Interpretation is not the expected.", TestConstants.BancoTransfiraInterp, firstInterpFromFirstAlt);
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
-        } finally {
-            try {
-                if (recognizer != null)
-                    recognizer.close();
-            } catch (Exception e) {
-                // ignore
-            }
         }
     }
 
     @Test
     public void continuousMode() {
 
-        SpeechRecognizerInterface recognizer = null;
         try {
-            recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL).credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal)
                     .recogConfig(RecognitionConfig.builder().continuousMode(true).build()).build(mContext);
 
-            recognizer.recognize(new FileAudioSource(mContext.getAssets().open(TestConstants.HeteroSegAudio)),
-                    LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
-            List<RecognitionResult> results = recognizer.waitRecognitionResult();
+            List<RecognitionResult> results;
+            String textFromFirstAlternative;
 
-            assertTrue("Number of results is " + results.size(), results.size() > 0);
+            List<String> ContinuousModeTextSegments = Arrays.asList(TestConstants.ContinuousModeTextSeg1, TestConstants.ContinuousModeTextSeg2,
+                    TestConstants.ContinuousModeTextSeg3, TestConstants.ContinuousModeTextSeg4);
 
+            BufferAudioSource audio = new BufferAudioSource();
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            WriteToBufferAudioSource(audio, TestConstants.ContinuousModeAudio, defaultPacketDelay);
+            results = recognizer.waitRecognitionResult();
+
+            int expectedAlternatives, i;
+            expectedAlternatives = ContinuousModeTextSegments.size();
+            // +1 is because of No Last Pack sign will be sent
+            assertEquals("Number of Results is not the expected.", expectedAlternatives + 1, results.size());
+
+            for (i = 0; i < expectedAlternatives; i++) {
+                textFromFirstAlternative = results.get(i).getAlternatives().get(0).getText().toString();
+                assertEquals("Recognized Text is not the expected.", ContinuousModeTextSegments.get(i).toString(), textFromFirstAlternative);
+            }
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
-        } finally {
-            try {
-                if (recognizer != null)
-                    recognizer.close();
-            } catch (Exception e) {
-                // ignore
-            }
         }
     }
+
+    // Aux function
+    void WriteToBufferAudioSource(BufferAudioSource audio, String audioName, int packetDelay) throws Exception {
+        InputStream input = mContext.getAssets().open(audioName);
+        // Read the audio file and write into AudioSource
+        byte[] buffer = new byte[1600]; // 100 ms segment (tx 8kHz)
+        int len;
+        boolean keepWriting = true;
+        while ((len = input.read(buffer)) != -1 && keepWriting) {
+            // delays the audio writing to simulate real time
+            Thread.sleep(packetDelay);
+            keepWriting = audio.write(buffer, len);
+        }
+        input.close();
+        // It's not expected of BufferAudioSource to send Last Packet = true... theoretically it doesn't know the when the stream end.
+        //audio.finish();
+    }
 }
+
