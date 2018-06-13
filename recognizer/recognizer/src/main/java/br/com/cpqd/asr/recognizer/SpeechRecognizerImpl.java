@@ -179,11 +179,6 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
     private ReaderTask mReaderTask;
 
     /**
-     * The audio source object.
-     */
-    private AudioSource mAudio;
-
-    /**
      * Flag to know if server response.
      */
     private boolean mServerResponse;
@@ -415,8 +410,21 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
     public void recognize(AudioSource audio, LanguageModelList lmList, RecognitionConfig config) throws RecognitionException {
 
         // Check if library is in expected state to accept message.
-        if (mState != STATE_IDLE) {
+        if (mState != STATE_IDLE && mState != STATE_WAITING_RELEASE_SESSION) {
             return;
+        }
+
+        // Wait release session to start another recognize
+        if (mState == STATE_WAITING_RELEASE_SESSION) {
+            try {
+                synchronized (mSeverResponseLock) {
+                    mSeverResponseLock.wait(MAX_RESPONSE_TIMEOUT);
+                }
+
+                Thread.sleep(500);
+            } catch (Exception e) {
+                // ignoring
+            }
         }
 
         mState = STATE_STARTING;
@@ -427,14 +435,12 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
 
         mError = null;
 
-        mAudio = audio;
-
         if (config != null) {
             mRecognitionConfig = config;
         }
 
         // Creates a thread to read the audio source and send the packets to the server
-        mReaderTask = new ReaderTask(mAudio, mBuilder);
+        mReaderTask = new ReaderTask(audio, mBuilder);
 
         // Set language model URI into connection thread.
         Message message = mAsrServerConnectionThread.obtainMessage();
@@ -481,29 +487,8 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
             return new ArrayList<>();
         }
 
-        if (mReaderTask.isRunning()) {
-
-            // se o audio está sendo enviado, bloqueia a thread aguardando o fim do processo
-            while (mReaderTask.isRunning()) {
-                try {
-
-                    //noinspection SynchronizeOnNonFinalField
-                    synchronized (mAudio) {
-                        mAudio.wait(3000);
-                    }
-                } catch (InterruptedException e) {
-                    // ignoring
-                }
-            }
-
-            if (mReaderTask.isCancelled()) {
-                // se tarefa foi cancelada, devolve resultado vazio
-                return new ArrayList<>();
-            }
-        }
-
+        // Waits for receipt of the result if the server is processing
         if (mState == STATE_RECORDING || mState == STATE_WAITING_RECOGNITION) {
-            // se o servidor está processando, aguarda o recebimento do resultado
             try {
                 synchronized (mSentencesQueue) {
                     mSentencesQueue.wait(timeout * 1000);
@@ -511,6 +496,10 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
             } catch (InterruptedException e) {
                 // ignoring
             }
+        }
+
+        if (mReaderTask.isCancelled()) {
+            return new ArrayList<>();
         }
 
         try {
@@ -533,8 +522,10 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
             }
 
         } finally {
-            // retorna para estado original; se houver chamadas em sequencia do
-            // metodo wait(), evita de ficar ocorrendo timeout
+            // returns to original state; if there are calls in sequence to the wait () method, avoiding timeout occurring
+            if (mReaderTask != null) {
+                mReaderTask.finish();
+            }
             mReaderTask = null;
         }
     }
@@ -551,6 +542,11 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
         // Cancel the audio recorder thread.
         if (mReaderTask != null) {
             mReaderTask.cancel();
+        }
+
+        // Notify the sentences queue
+        synchronized (mSentencesQueue) {
+            mSentencesQueue.notifyAll();
         }
 
         // Ask connection thread to establish connection with given URL.
@@ -608,6 +604,11 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
         // Cancel the audio recorder thread.
         if (mReaderTask != null) {
             mReaderTask.cancel();
+        }
+
+        // Notify the sentences queue
+        synchronized (mSentencesQueue) {
+            mSentencesQueue.notifyAll();
         }
 
         // Check if is in the correct state
@@ -677,18 +678,11 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
             // Back the state to idle
             mState = STATE_IDLE;
 
-            // Finalize the reader task
-            if (mReaderTask != null) {
-                mReaderTask.finish();
-            }
-
-            // Notify the sentence queue
-            synchronized (mSentencesQueue) {
-                mSentencesQueue.notifyAll();
-            }
-
             // The recognition is over. close the session
             if (mBuilder.autoClose) {
+
+                mState = STATE_WAITING_RELEASE_SESSION;
+
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
@@ -699,6 +693,16 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
                         }
                     }
                 }).start();
+            }
+
+            // Finalize the reader task
+            if (mReaderTask != null) {
+                mReaderTask.finish();
+            }
+
+            // Notify the sentence queue
+            synchronized (mSentencesQueue) {
+                mSentencesQueue.notifyAll();
             }
         }
     }
@@ -755,10 +759,6 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
 
         boolean isIdle() {
             return readerStatus == ReaderTaskStatus.IDLE;
-        }
-
-        boolean isRunning() {
-            return readerStatus == ReaderTaskStatus.RUNNING;
         }
 
         void cancel() {
@@ -821,12 +821,6 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
             } catch (Exception e) {
                 Log.e(TAG, e.getMessage(), e);
             } finally {
-
-                // Notify the audio finish recording
-                synchronized (audio) {
-                    audio.notifyAll();
-                }
-
                 // Close the audio
                 try {
                     audio.close();

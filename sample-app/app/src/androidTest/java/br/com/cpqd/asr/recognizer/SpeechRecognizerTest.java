@@ -43,7 +43,8 @@ import static org.junit.Assert.fail;
 public class SpeechRecognizerTest {
 
     private static final Context mContext = InstrumentationRegistry.getTargetContext();
-    int defaultPacketDelay = 100;
+
+    private int defaultPacketDelay = 100;
 
     @Test
     public void basicGrammar() {
@@ -205,15 +206,16 @@ public class SpeechRecognizerTest {
 
         // Use wait timer very short to force timeout
         int maxWait = 1;
-        long startTimeMS,stopTimeMS, elapsedTimeMS;
+        long startTimeMS = 0, stopTimeMS, elapsedTimeMS;
 
-        startTimeMS = System.currentTimeMillis();
         try {
             SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal).build(mContext);
 
             BufferAudioSource audio = new BufferAudioSource();
             recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             WriteToBufferAudioSource(audio, TestConstants.NoEndSilenceAudio, defaultPacketDelay);
+
+            startTimeMS = System.currentTimeMillis();
 
             recognizer.waitRecognitionResult(maxWait);
             // There is no assert hear, because de debug from the last assert is more useful
@@ -227,7 +229,7 @@ public class SpeechRecognizerTest {
         stopTimeMS = System.currentTimeMillis();
         elapsedTimeMS = stopTimeMS - startTimeMS;
         System.out.println("### Elapsed Time is: " + elapsedTimeMS + " ms");
-        assertTrue("Recognition time must be smaller than " + maxWait + " seconds", elapsedTimeMS <= (maxWait*1000)*1.1);
+        assertTrue("Recognition time must be smaller than " + maxWait + " seconds", elapsedTimeMS <= (maxWait * 1000) * 1.1);
     }
 
     @Test
@@ -371,7 +373,7 @@ public class SpeechRecognizerTest {
             String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
 
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
-            assertEquals("Recognized Text is not the expected.",TestConstants.NoEndSilenceText ,textFromFirstAlternative);
+            assertEquals("Recognized Text is not the expected.", TestConstants.NoEndSilenceText, textFromFirstAlternative);
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
@@ -528,7 +530,7 @@ public class SpeechRecognizerTest {
         try {
             SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal)
                     .recogConfig(RecognitionConfig.builder().recognitionTimeoutEnabled(true)
-                            .recognitionTimeoutSeconds(5000).startInputTimers(true).build())
+                            .recognitionTimeoutMilis(5000).startInputTimers(true).build())
                     .connectOnRecognize(true).autoClose(true).build(mContext);
 
             BufferAudioSource audioBuffer1 = new BufferAudioSource();
@@ -691,7 +693,7 @@ public class SpeechRecognizerTest {
     }
 
     // Aux function
-    void WriteToBufferAudioSource(BufferAudioSource audio, String audioName, int packetDelay) throws Exception {
+    private void WriteToBufferAudioSource(BufferAudioSource audio, String audioName, int packetDelay) throws Exception {
         InputStream input = mContext.getAssets().open(audioName);
         // Read the audio file and write into AudioSource
         byte[] buffer = new byte[1600]; // 100 ms segment (tx 8kHz)
@@ -707,4 +709,3 @@ public class SpeechRecognizerTest {
         //audio.finish();
     }
 }
-

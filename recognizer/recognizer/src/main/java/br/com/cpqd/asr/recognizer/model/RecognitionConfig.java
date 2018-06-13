@@ -193,7 +193,7 @@ public class RecognitionConfig {
 		private Integer confidenceThreshold;
 		private Integer maxSentences;
 		private Integer noInputTimeoutMilis;
-		private Integer recognitionTimeoutSeconds;
+		private Integer recognitionTimeoutMilis;
 		private Integer headMarginMilis;
 		private Integer tailMarginMilis;
 		private Integer waitEndMilis;
@@ -215,7 +215,7 @@ public class RecognitionConfig {
 			config.setConfidenceThreshold(confidenceThreshold);
 			config.setMaxSentences(maxSentences);
 			config.setNoInputTimeout(noInputTimeoutMilis);
-			config.setRecognitionTimeout(recognitionTimeoutSeconds);
+			config.setRecognitionTimeout(recognitionTimeoutMilis);
 			config.setHeadMarginMiliseconds(headMarginMilis);
 			config.setTailMarginMiliseconds(tailMarginMilis);
 			config.setWaitEndMiliseconds(waitEndMilis);
@@ -249,8 +249,8 @@ public class RecognitionConfig {
 			return this;
 		}
 
-		public Builder recognitionTimeoutSeconds(Integer value) {
-			this.recognitionTimeoutSeconds = value;
+		public Builder recognitionTimeoutMilis(Integer value) {
+			this.recognitionTimeoutMilis = value;
 			return this;
 		}
 
