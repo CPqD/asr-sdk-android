@@ -55,8 +55,8 @@ public class SpeechRecognizerTest {
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
             List<Interpretation> interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
 
-            String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
-            String firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+            String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
+            String firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation();
 
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
             assertEquals("Recognized Text is not the expected.", TestConstants.CpfText, textFromFirstAlternative);
@@ -76,7 +76,7 @@ public class SpeechRecognizerTest {
             recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
 
-            String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
 
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
             assertEquals("Recognized Text is not the expected.", TestConstants.NoEndSilenceText, textFromFirstAlternative);
@@ -158,8 +158,8 @@ public class SpeechRecognizerTest {
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
             List<Interpretation> interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
 
-            String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
-            String firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+            String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
+            String firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation();
 
 
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
@@ -188,7 +188,7 @@ public class SpeechRecognizerTest {
             WriteToBufferAudioSource(audio, TestConstants.PizzaVegAudio, 2 * defaultPacketDelay);
 
             List<RecognitionResult> results = recognizer.waitRecognitionResult(noInputTimeout);
-            String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
 
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
             assertEquals("Number of alternatives is not the expected.", maxSentences, results.get(0).getAlternatives().size());
@@ -322,8 +322,8 @@ public class SpeechRecognizerTest {
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
             List<Interpretation> interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
 
-            String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
-            String firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+            String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
+            String firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation();
 
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
             assertEquals("Recognized Text is not the expected.", TestConstants.CpfText, textFromFirstAlternative);
@@ -368,7 +368,7 @@ public class SpeechRecognizerTest {
             WriteToBufferAudioSource(audio, TestConstants.SilenceAudio, defaultPacketDelay);
 
             List<RecognitionResult> results = recognizer.waitRecognitionResult();
-            String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            String textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
 
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
             assertEquals("Recognized Text is not the expected.",TestConstants.NoEndSilenceText ,textFromFirstAlternative);
@@ -399,21 +399,20 @@ public class SpeechRecognizerTest {
             recognizer.recognize(audioFile, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             results = recognizer.waitRecognitionResult();
 
-            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
             assertEquals("Recognized Text is not the expected.", TestConstants.NoEndSilenceText, textFromFirstAlternative);
 
             System.out.println("### Recognition #2");
-            recognizer.recognize(audioBuffer1, LanguageModelList.builder().addFromURI(TestConstants.CpfGramHttp).build());
-            WriteToBufferAudioSource(audioBuffer1, TestConstants.CpfAudio, defaultPacketDelay);
+            recognizer.recognize(audioBuffer1, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
+            WriteToBufferAudioSource(audioBuffer1, TestConstants.ContinuousModeAudio, defaultPacketDelay);
             results = recognizer.waitRecognitionResult();
 
-            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
             interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
-            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
-            assertEquals("Recognized Text is not the expected.", TestConstants.CpfText, textFromFirstAlternative);
-            assertEquals("Interpretation is not the expected.", TestConstants.CpfInterp, firstInterpFromFirstAlt);
+            assertEquals("Recognized Text is not the expected.", TestConstants.ContinuousModeTextSeg1, textFromFirstAlternative);
+            assertTrue("Interpretations list should be empty.", interpretationsFromFirstAlt.isEmpty());
 
             System.out.println("### Recognition #3");
             recognizer.recognize(audioSilenceFile, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
@@ -427,9 +426,9 @@ public class SpeechRecognizerTest {
             WriteToBufferAudioSource(audioBuffer2, TestConstants.PizzaVegAudio, defaultPacketDelay);
             results = recognizer.waitRecognitionResult();
 
-            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
             interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
-            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation();
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
             assertEquals("Recognized Text is not the expected.", TestConstants.PizzaVegText, textFromFirstAlternative);
             assertEquals("Interpretation is not the expected.", TestConstants.PizzaVegInterp, firstInterpFromFirstAlt);
@@ -440,7 +439,7 @@ public class SpeechRecognizerTest {
             WriteToBufferAudioSource(audioBuffer3, TestConstants.BancoTransfiraAudio, defaultPacketDelay);
             results = recognizer.waitRecognitionResult();
 
-            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
             assertEquals("Recognized Text is not the expected.", TestConstants.BancoTransfiraText, textFromFirstAlternative);
         } catch (Exception e) {
@@ -467,16 +466,16 @@ public class SpeechRecognizerTest {
             String textFromFirstAlternative, firstInterpFromFirstAlt;
 
             System.out.println("### Recognition #1");
-            recognizer.recognize(audioBuffer1, LanguageModelList.builder().addFromURI(TestConstants.CpfGramHttp).build());
-            WriteToBufferAudioSource(audioBuffer1, TestConstants.CpfAudio, defaultPacketDelay);
+            recognizer.recognize(audioBuffer1, LanguageModelList.builder().addFromURI(TestConstants.PizzaGramHttp).build());
+            WriteToBufferAudioSource(audioBuffer1, TestConstants.PizzaVegAudio, defaultPacketDelay);
             results = recognizer.waitRecognitionResult();
 
-            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
             interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
-            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation();
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
-            assertEquals("Recognized Text is not the expected.", TestConstants.CpfText, textFromFirstAlternative);
-            assertEquals("Interpretation is not the expected.", TestConstants.CpfInterp, firstInterpFromFirstAlt);
+            assertEquals("Recognized Text is not the expected.", TestConstants.PizzaVegText, textFromFirstAlternative);
+            assertEquals("Interpretation is not the expected.", TestConstants.PizzaVegInterp, firstInterpFromFirstAlt);
 
             System.out.println("### Recognition #2");
             recognizer.recognize(audioBuffer2, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
@@ -490,9 +489,9 @@ public class SpeechRecognizerTest {
             recognizer.recognize(audioFile1, LanguageModelList.builder().addFromURI(TestConstants.BankGramHttp).build());
             results = recognizer.waitRecognitionResult();
 
-            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
             interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
-            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation();
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
             assertEquals("Recognized Text is not the expected.", TestConstants.BancoTransfiraText, textFromFirstAlternative);
             assertEquals("Interpretation is not the expected.", TestConstants.BancoTransfiraInterp, firstInterpFromFirstAlt);
@@ -502,9 +501,9 @@ public class SpeechRecognizerTest {
             WriteToBufferAudioSource(audioBuffer3, TestConstants.BancoTransfiraAudio, defaultPacketDelay);
             results = recognizer.waitRecognitionResult();
 
-            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
             interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
-            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation();
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
             assertEquals("Recognized Text is not the expected.", TestConstants.BancoTransfiraText, textFromFirstAlternative);
             assertEquals("Interpretation is not the expected.", TestConstants.BancoTransfiraInterp, firstInterpFromFirstAlt);
@@ -514,7 +513,7 @@ public class SpeechRecognizerTest {
             recognizer.recognize(audioFile2, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             results = recognizer.waitRecognitionResult();
 
-            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
             assertEquals("Recognized Text is not the expected.", TestConstants.NoEndSilenceText, textFromFirstAlternative);
         } catch (Exception e) {
@@ -546,9 +545,9 @@ public class SpeechRecognizerTest {
             recognizer.recognize(audioFile1, LanguageModelList.builder().addFromURI(TestConstants.BankGramHttp).build());
             results = recognizer.waitRecognitionResult();
 
-            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
             interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
-            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation();
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
             assertEquals("Recognized Text is not the expected.", TestConstants.BancoTransfiraText, textFromFirstAlternative);
             assertEquals("Interpretation is not the expected.", TestConstants.BancoTransfiraInterp, firstInterpFromFirstAlt);
@@ -565,7 +564,7 @@ public class SpeechRecognizerTest {
             recognizer.recognize(audioFile2, LanguageModelList.builder().addFromURI(TestConstants.FreeLanguageModel).build());
             results = recognizer.waitRecognitionResult();
 
-            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
             assertEquals("Recognized Text is not the expected.", TestConstants.NoEndSilenceText, textFromFirstAlternative);
 
@@ -583,9 +582,9 @@ public class SpeechRecognizerTest {
             recognizer.recognize(audioFile3, LanguageModelList.builder().addFromURI(TestConstants.PizzaGramHttp).build());
             results = recognizer.waitRecognitionResult();
 
-            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
             interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
-            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation();
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
             assertEquals("Recognized Text is not the expected.", TestConstants.PizzaVegText, textFromFirstAlternative);
             assertEquals("Interpretation is not the expected.", TestConstants.PizzaVegInterp, firstInterpFromFirstAlt);
@@ -617,9 +616,9 @@ public class SpeechRecognizerTest {
 
             assertTrue("Elapsed time should be very short.", elapsedTimeMS < 10);
 
-            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText().toString();
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
             interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
-            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation().toString();
+            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation();
             assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
             assertEquals("Recognized Text is not the expected.", TestConstants.BancoTransfiraText, textFromFirstAlternative);
             assertEquals("Interpretation is not the expected.", TestConstants.BancoTransfiraInterp, firstInterpFromFirstAlt);
@@ -653,9 +652,38 @@ public class SpeechRecognizerTest {
             assertEquals("Number of Results is not the expected.", expectedAlternatives + 1, results.size());
 
             for (i = 0; i < expectedAlternatives; i++) {
-                textFromFirstAlternative = results.get(i).getAlternatives().get(0).getText().toString();
-                assertEquals("Recognized Text is not the expected.", ContinuousModeTextSegments.get(i).toString(), textFromFirstAlternative);
+                textFromFirstAlternative = results.get(i).getAlternatives().get(0).getText();
+                assertEquals("Recognized Text is not the expected.", ContinuousModeTextSegments.get(i), textFromFirstAlternative);
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("Test failed: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void strangeBehaviorAudioCpfLastPacketFalse() {
+
+        try {
+            SpeechRecognizerInterface recognizer = SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL_Internal)
+                    .connectOnRecognize(true).autoClose(false).build(mContext);
+
+            BufferAudioSource audio = new BufferAudioSource();
+
+            List<RecognitionResult> results;
+            List<Interpretation> interpretationsFromFirstAlt;
+            String textFromFirstAlternative, firstInterpFromFirstAlt;
+
+            recognizer.recognize(audio, LanguageModelList.builder().addFromURI(TestConstants.CpfGramHttp).build());
+            WriteToBufferAudioSource(audio, TestConstants.CpfAudio, defaultPacketDelay);
+            results = recognizer.waitRecognitionResult();
+
+            textFromFirstAlternative = results.get(0).getAlternatives().get(0).getText();
+            interpretationsFromFirstAlt = results.get(0).getAlternatives().get(0).getInterpretations();
+            firstInterpFromFirstAlt = interpretationsFromFirstAlt.get(0).getInterpretation();
+            assertEquals("Result Status is not the expected.", RecognitionResultCode.RECOGNIZED, results.get(0).getResultCode());
+            assertEquals("Recognized Text is not the expected.", TestConstants.CpfText, textFromFirstAlternative);
+            assertEquals("Interpretation is not the expected.", TestConstants.CpfInterp, firstInterpFromFirstAlt);
         } catch (Exception e) {
             e.printStackTrace();
             fail("Test failed: " + e.getMessage());
