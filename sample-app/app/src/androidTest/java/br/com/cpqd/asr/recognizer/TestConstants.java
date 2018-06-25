@@ -20,7 +20,7 @@ public class TestConstants {
     /**
      * URL interna de acesso ao ASR para testes
      */
-    public static final String ASR_URL_Internal = "ws://portuguesa.cpqd.com.br:8025/asr-server/asr";
+    public static final String ASR_URL_Internal = "ws://vmh123.cpqd.com.br:8025/asr-server/asr";
 
     /**
      * Modelo de Fala Livre
