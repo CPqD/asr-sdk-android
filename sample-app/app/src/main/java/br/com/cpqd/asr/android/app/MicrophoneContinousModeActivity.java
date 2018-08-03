@@ -260,7 +260,7 @@ public class MicrophoneContinousModeActivity extends AppCompatActivity {
                                                 }
                                             }
 
-                                            if (result.isFinalResult()) {
+                                            if (result.isLastSpeechSegment()) {
                                                 changeState(false);
                                             }
                                         }

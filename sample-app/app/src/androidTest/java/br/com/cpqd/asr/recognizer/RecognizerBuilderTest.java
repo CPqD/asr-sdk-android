@@ -45,6 +45,8 @@ public class RecognizerBuilderTest {
 
     private static final Context mContext = InstrumentationRegistry.getTargetContext();
 
+    private RecognitionError recognitionError;
+
     @Test
     public void urlNull() {
         try {
@@ -76,23 +78,96 @@ public class RecognizerBuilderTest {
     @Test
     public void credentialValid() {
         try {
+
+            recognitionError = null;
+
             SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL)
-                    .credentials(TestConstants.ASR_User, TestConstants.ASR_Pass).build(mContext);
+                    .connectOnRecognize(false)
+                    .credentials(TestConstants.ASR_User, TestConstants.ASR_Pass)
+                    .addListener(new RecognitionListener() {
+                        @Override
+                        public void onSpeechStop(Integer time) {
+                        }
+
+                        @Override
+                        public void onSpeechStart(Integer time) {
+                        }
+
+                        @Override
+                        public void onRecognitionResult(RecognitionResult result) {
+                        }
+
+                        @Override
+                        public void onPartialRecognitionResult(PartialRecognitionResult result) {
+                        }
+
+                        @Override
+                        public void onListening() {
+                        }
+
+                        @Override
+                        public void onError(final RecognitionError error) {
+
+                            recognitionError = error;
+                        }
+
+                    }).build(mContext);
+
+            if (recognitionError != null) {
+                fail("Error not expected");
+            }
         } catch (Exception e) {
             e.printStackTrace();
-            fail("No exception was expected");
+            fail("Test failed: " + e.getMessage());
         }
     }
 
     @Test
     public void credentialInvalid() {
         try {
+
+            recognitionError = null;
+
             SpeechRecognizer.builder().serverURL(TestConstants.ASR_URL)
-                    .credentials("blabla", "blublu").build(mContext);
-            fail("IOException expected");
+                    .connectOnRecognize(false)
+                    .credentials("blabla", "blublu")
+                    .addListener(new RecognitionListener() {
+                        @Override
+                        public void onSpeechStop(Integer time) {
+                        }
+
+                        @Override
+                        public void onSpeechStart(Integer time) {
+                        }
+
+                        @Override
+                        public void onRecognitionResult(RecognitionResult result) {
+                        }
+
+                        @Override
+                        public void onPartialRecognitionResult(PartialRecognitionResult result) {
+                        }
+
+                        @Override
+                        public void onListening() {
+                        }
+
+                        @Override
+                        public void onError(final RecognitionError error) {
+
+                            recognitionError = error;
+                        }
+
+                    }).build(mContext);
+
+            if (recognitionError != null) {
+                assertEquals("Invalid username or password", recognitionError.getMessage());
+            } else {
+                fail("Error expected");
+            }
         } catch (Exception e) {
             e.printStackTrace();
-            fail("IOException expected, instead of " + e.getCause());
+            fail("Test failed: " + e.getMessage());
         }
     }
 

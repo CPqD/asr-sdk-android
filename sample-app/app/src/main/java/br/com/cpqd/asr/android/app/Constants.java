@@ -5,7 +5,7 @@ public class Constants {
     /**
      * ASR Server url
      */
-    public static final String URL = "wss://speech.cpqd.com.br/asr/ws/estevan/recognize/8k";
+    public static final String URL = "ws://vmh123.cpqd.com.br:8025/asr-server/asr";
 
     /**
      * ASR User

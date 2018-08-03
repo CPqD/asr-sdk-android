@@ -32,7 +32,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class BufferAudioSource implements AudioSource {
 
     /**
-     * default buffer size.
+     * Default buffer size.
      */
     private static final int PIPE_SIZE = 5 * 1024 * 1024; // 5 MB
 

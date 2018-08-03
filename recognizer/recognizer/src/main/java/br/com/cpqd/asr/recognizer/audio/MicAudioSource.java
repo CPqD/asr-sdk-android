@@ -25,25 +25,39 @@ import android.util.Log;
  */
 public class MicAudioSource implements AudioSource {
 
-    /* Log tag. */
+    /**
+     * Log tag.
+     */
     private static final String TAG = MicAudioSource.class.getSimpleName();
 
-    /* Number of audio input channels. */
+    /**
+     * Number of audio input channels.
+     */
     private static final int RECORDER_NUMBER_OF_CHANNELS = AudioFormat.CHANNEL_IN_MONO;
 
-    /* Audio format. */
+    /**
+     * Audio format.
+     */
     private static final int RECORDER_AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT;
 
-    /* Audio source. */
+    /**
+     * Audio source.
+     */
     private static final int RECORDER_AUDIO_SOURCE = MediaRecorder.AudioSource.MIC;
 
-    /* Audio record. */
+    /**
+     * Audio record.
+     */
     private AudioRecord recorder;
 
-    /* Flag to indicate if the capture started. */
+    /**
+     * Flag to indicate if the capture started.
+     */
     private boolean started;
 
-    /* Flag to indicate if is to stop the capture. */
+    /**
+     * Flag to indicate if is to stop the capture.
+     */
     private boolean stopped;
 
     /**
@@ -103,7 +117,6 @@ public class MicAudioSource implements AudioSource {
             return shortsRead;
 
         } else {
-
             return -1;
         }
     }
@@ -111,7 +124,7 @@ public class MicAudioSource implements AudioSource {
     @Override
     public void close() {
 
-        Log.d(TAG, "close");
+        Log.d(TAG, "[MicAudioSource] close");
 
         finish();
     }
@@ -119,7 +132,7 @@ public class MicAudioSource implements AudioSource {
     @Override
     public void finish() {
 
-        Log.d(TAG, "finish");
+        Log.d(TAG, "[MicAudioSource]  finish");
 
         stopped = true;
 

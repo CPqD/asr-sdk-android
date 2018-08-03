@@ -256,8 +256,7 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
     }
 
     /**
-     * Class that brings the inter-thread communication framework
-     * to the main thread.
+     * Class that brings the inter-thread communication framework to the main thread.
      *
      * @see AbstractMessagingThread
      */
@@ -302,8 +301,10 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
             } else if (msg.arg1 == MESSAGE_ON_ERROR) {
 
                 // Notify callback listener.
-                for (RecognitionListener listener : mListeners) {
-                    listener.onError((RecognitionError) msg.obj);
+                if (mState != STATE_IDLE) {
+                    for (RecognitionListener listener : mListeners) {
+                        listener.onError((RecognitionError) msg.obj);
+                    }
                 }
 
             } else if (msg.arg1 == MESSAGE_ON_CREATE_SESSION) {
@@ -420,7 +421,6 @@ class SpeechRecognizerImpl implements SpeechRecognizerInterface, RecognitionList
                 synchronized (mSeverResponseLock) {
                     mSeverResponseLock.wait(MAX_RESPONSE_TIMEOUT);
                 }
-
                 Thread.sleep(500);
             } catch (Exception e) {
                 // ignoring

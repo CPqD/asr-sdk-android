@@ -84,20 +84,17 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
     private static final int CONNECTION_STATE_DISCONNECTED = 2;
 
     /**
-     * Connection state indicating the client is waiting for
-     * a server response to a new connection request.
+     * Connection state indicating the client is waiting for a server response to a new connection request.
      */
     private static final int CONNECTION_STATE_WAITING_SERVER_HANDSHAKE = 3;
 
     /**
-     * Connection state indicating the client is waiting for
-     * a server response to a create session request.
+     * Connection state indicating the client is waiting for a server response to a create session request.
      */
     private static final int CONNECTION_STATE_WAITING_CREATE_SESSION = 4;
 
     /**
-     * Connection state indicating the client is waiting for
-     * a server response to a start recognition request.
+     * Connection state indicating the client is waiting for a server response to a start recognition request.
      */
     private static final int CONNECTION_STATE_WAITING_START_RECOGNITION = 5;
 
@@ -107,20 +104,17 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
     private static final int CONNECTION_STATE_STREAMING_AUDIO = 6;
 
     /**
-     * Connection state indicating the client is waiting for
-     * the recognition result.
+     * Connection state indicating the client is waiting for the recognition result.
      */
     private static final int CONNECTION_STATE_WAITING_RECOGNITION_RESULT = 7;
 
     /**
-     * Connection state indicating the client is waiting for
-     * a server response to a release session request.
+     * Connection state indicating the client is waiting for a server response to a release session request.
      */
     private static final int CONNECTION_STATE_WAITING_RELEASE_SESSION = 8;
 
     /**
-     * Connection state indicating the client is waiting for
-     * a server response to a cancel recognition request.
+     * Connection state indicating the client is waiting for a server response to a cancel recognition request.
      */
     private static final int CONNECTION_STATE_WAITING_CANCEL_RECOGNITION = 9;
 
@@ -130,8 +124,7 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
     public static final int MESSAGE_SET_LANGUAGE_MODEL_URI = 1;
 
     /**
-     * Handler message code for establishing a connection
-     * to the server.
+     * Handler message code for establishing a connection to the server.
      */
     public static final int MESSAGE_CONNECT_TO_SERVER = 2;
 
@@ -168,7 +161,7 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
     /**
      * Handler message code for resetting network timeout.
      */
-    private static final int INTERNAL_MESSAGE_RESET_NETWORK_TIMEOUT = 20;
+    private static final int INTERNAL_MESSAGE_REMOVE_NETWORK_TIMEOUT = 20;
 
     /**
      * Handler message code for setting a websocket session.
@@ -201,14 +194,12 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
     private static final int INTERNAL_MESSAGE_RAISE_NETWORK_TIMEOUT = 26;
 
     /**
-     * What code for network timeout message.
-     * Blame Google for this stupid name.
+     * Code for request timeout message.
      */
-    private static final int WHAT_NETWORK_TIMEOUT = 1;
+    private static final int WHAT_REQUEST_TIMEOUT = 1;
 
     /**
      * The current connection state.
-     * It can be on of the {@code CONNECTION_STATE_*} values.
      */
     private int mConnectionState;
 
@@ -219,7 +210,6 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
 
     /**
      * Reference to the current {@link ClientManager}.
-     * Who knows if we really need it.
      */
     private ClientManager mClientManager;
 
@@ -235,14 +225,12 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
     private final AsrClientEndpoint mAsrClientEndpoint;
 
     /**
-     * Buffer that accumulates audio samples to be sent to the server
-     * while the connection has not been established.
+     * Buffer that accumulates audio samples to be sent to the server while the connection has not been established.
      */
     private final ByteArrayOutputStream mAudioBufferBaos;
 
     /**
-     * Flag indicating whether the audio buffered in {@link #mAudioBufferBaos}
-     * should be sent to the server as the last packet.
+     * Flag indicating whether the audio buffered in {@link #mAudioBufferBaos} should be sent to the server as the last packet.
      */
     private boolean mAudioBufferIsLastPacket;
 
@@ -255,11 +243,6 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
      * Language model URI.
      */
     private String mLanguageModelUri;
-
-    /**
-     * Custom websocket close reason when a network timeout occurs.
-     */
-    private final NetworkTimeoutCloseReason mNetworkTimeoutCloseReason;
 
     /**
      * Custom websocket close reason when an internal library error occurs.
@@ -304,8 +287,6 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
         mAsrClientEndpoint = new AsrClientEndpoint();
 
         mAudioBufferBaos = new ByteArrayOutputStream();
-
-        mNetworkTimeoutCloseReason = new NetworkTimeoutCloseReason();
 
         mLibraryErrorCloseReason = new LibraryErrorCloseReason();
 
@@ -373,10 +354,10 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
         // Set network timeout.
         Message message = obtainMessage();
         message.arg1 = INTERNAL_MESSAGE_RAISE_NETWORK_TIMEOUT;
-        message.what = WHAT_NETWORK_TIMEOUT;
+        message.what = WHAT_REQUEST_TIMEOUT;
 
-        if (!sendMessageDelayed(message, mNetworkTimeoutPeriod)) {
-            Log.w(TAG, "error send network timeout message delayed");
+        if (!sendMessageDelayed(message, 10000)) {
+            Log.w(TAG, "error sending request timeout message delayed");
         }
     }
 
@@ -396,7 +377,7 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
 
             Message message = mRecognizer.obtainMessage();
             message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_ERROR;
-            message.obj = new RecognitionError(RecognitionErrorCode.CONNECTION_FAILURE, "Network error");
+            message.obj = new RecognitionError(RecognitionErrorCode.CONNECTION_FAILURE, "Connection failed");
             message.sendToTarget();
 
             return;
@@ -427,7 +408,7 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
 
                 Message message = mRecognizer.obtainMessage();
                 message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_ERROR;
-                message.obj = new RecognitionError(RecognitionErrorCode.CONNECTION_FAILURE, "Network error");
+                message.obj = new RecognitionError(RecognitionErrorCode.CONNECTION_FAILURE, "Connection failed");
                 message.sendToTarget();
             }
 
@@ -539,6 +520,9 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
         }
 
         mConnectionState = CONNECTION_STATE_WAITING_CREATE_SESSION;
+
+        // Set network timeout.
+        setNetworkTimeout();
     }
 
     /**
@@ -546,8 +530,7 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
      * If a problem occurs, an error message is sent to the main {@link android.os.Handler}.
      *
      * @param asrMessage ASR message to be sent.
-     * @return {@code true} if the message was sent successfully,
-     * or {@code false} otherwise.
+     * @return true if the message was sent successfully or false otherwise.
      */
     private boolean sendAsrMessage(AsrMessage asrMessage) {
 
@@ -614,17 +597,17 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
 
                 if (responseMethod.contentEquals(AsrMessage.METHOD_CREATE_SESSION)) {
 
+                    // Remove the request timeout.
+                    removeMessages(WHAT_REQUEST_TIMEOUT);
+
                     // The ASR message is a response to create session.
                     //
                     // Send start recognition to server.
-
                     if (mConnectionState == CONNECTION_STATE_WAITING_CREATE_SESSION) {
 
                         String createSessionResult = asrMessage.getHeaderFieldValueForName("Result");
 
                         if (createSessionResult != null && createSessionResult.contentEquals("SUCCESS")) {
-
-                            removeMessages(WHAT_NETWORK_TIMEOUT);
 
                             Message message = mRecognizer.obtainMessage();
                             message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_CREATE_SESSION;
@@ -634,33 +617,30 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
 
                         } else {
 
-                            mConnectionState = CONNECTION_STATE_IDLE;
+                            resetConnectionState(true, mLibraryErrorCloseReason);
 
                             Message message = mRecognizer.obtainMessage();
                             message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_ERROR;
                             message.obj = new RecognitionError(RecognitionErrorCode.FAILURE, "Internal library error");
                             message.sendToTarget();
-
                         }
-
                     } else {
-
                         Log.i(TAG, "ignoring response to create session asr message");
                     }
 
                 } else if (responseMethod.contentEquals(AsrMessage.METHOD_START_RECOGNITION)) {
 
+                    // Remove the request timeout.
+                    removeMessages(WHAT_REQUEST_TIMEOUT);
+
                     // The ASR message is a response to start recognition.
                     //
                     // Start streaming audio to server.
-
                     if (mConnectionState == CONNECTION_STATE_WAITING_START_RECOGNITION) {
 
                         String startRecogResult = asrMessage.getHeaderFieldValueForName("Result");
 
                         if (startRecogResult != null && startRecogResult.contentEquals("SUCCESS")) {
-
-                            removeMessages(WHAT_NETWORK_TIMEOUT);
 
                             // Notify the speech recognizer that server is listening
                             Message message = mRecognizer.obtainMessage();
@@ -701,11 +681,8 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
                             }
 
                             message.sendToTarget();
-
                         }
-
                     } else {
-
                         Log.i(TAG, "ignoring response to start recognition asr message");
                     }
 
@@ -731,49 +708,48 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
 
                 } else if (responseMethod.contentEquals(AsrMessage.METHOD_RELEASE_SESSION)) {
 
+                    // Remove the request timeout.
+                    removeMessages(WHAT_REQUEST_TIMEOUT);
+
                     // The ASR message is a response to release session.
                     //
-                    // Remove network timeout and close connection to server.
-
+                    // Close connection to server and notify the main thread.
                     if (mConnectionState == CONNECTION_STATE_WAITING_RELEASE_SESSION) {
 
                         mConnectionState = CONNECTION_STATE_IDLE;
-
-                        removeMessages(WHAT_NETWORK_TIMEOUT);
 
                         resetConnectionState(true, mLibraryErrorCloseReason);
 
                         Message message = mRecognizer.obtainMessage();
                         message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_RELEASE_SESSION;
                         message.sendToTarget();
-
                     } else {
-
                         Log.i(TAG, "ignoring response to release session asr message");
                     }
 
                 } else if (responseMethod.contentEquals(AsrMessage.METHOD_CANCEL_RECOGNITION)) {
 
+                    // Remove the request timeout.
+                    removeMessages(WHAT_REQUEST_TIMEOUT);
+
                     // The ASR message is a response to cancel recognition.
                     //
                     // Notify the main thread.
-
                     if (mConnectionState == CONNECTION_STATE_WAITING_CANCEL_RECOGNITION) {
 
                         mConnectionState = CONNECTION_STATE_IDLE;
 
-                        removeMessages(WHAT_NETWORK_TIMEOUT);
-
                         Message message = mRecognizer.obtainMessage();
                         message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_CANCEL_RECOGNITION;
                         message.sendToTarget();
-
                     } else {
-
                         Log.i(TAG, "ignoring response to cancel recognition asr message");
                     }
 
                 } else if (responseMethod.contentEquals(AsrMessage.METHOD_START_INPUT_TIMERS)) {
+
+                    // Remove the request timeout.
+                    removeMessages(WHAT_REQUEST_TIMEOUT);
 
                     // The ASR message is a response to start input timers.
                     //
@@ -801,7 +777,6 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
             // The ASR message is a end of speech.
             //
             // Send a stop message to the main handler.
-
             if (mConnectionState == CONNECTION_STATE_STREAMING_AUDIO) {
 
                 mConnectionState = CONNECTION_STATE_WAITING_RECOGNITION_RESULT;
@@ -820,7 +795,6 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
             //      Final recognition result
             //      RECOGNIZED, NO_MATCH, NO_INPUT_TIMEOUT, MAX_SPEECH,
             //      NO_SPEECH, EARLY_SPEECH, RECOGNITION_TIMEOUT, FAILURE
-
             if (mConnectionState == CONNECTION_STATE_STREAMING_AUDIO || mConnectionState == CONNECTION_STATE_WAITING_RECOGNITION_RESULT) {
 
                 String resultStatusHeaderField = asrMessage.getHeaderFieldValueForName("Result-Status");
@@ -855,23 +829,18 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
                         message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_PARTIAL_RESULT;
                         message.obj = Util.getPartialRecogResult(result);
                         message.sendToTarget();
-
                     }
 
                 } else {
-
                     Log.i(TAG, "ignoring malformed recognition result asr message without result status header field");
                 }
-
             } else {
-
                 Log.i(TAG, "ignoring recognition result asr message");
             }
 
         } else {
 
             if (!method.contentEquals(AsrMessage.METHOD_START_OF_SPEECH)) {
-
                 Log.i(TAG, "ignoring asr message with method: " + method);
             }
         }
@@ -924,15 +893,13 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
                 }
 
                 if (!sendAsrMessage(new AsrMessage(AsrMessage.METHOD_START_RECOGNITION, headerFields, languageModel))) {
-
                     Log.w(TAG, "error sending start recognition");
                 }
 
-                // Set Network Timeout
-                setNetworkTimeout();
-
                 mConnectionState = CONNECTION_STATE_WAITING_START_RECOGNITION;
 
+                // Set Network Timeout
+                setNetworkTimeout();
             } else {
                 Log.i(TAG, "ignoring start recognition handler message");
             }
@@ -943,17 +910,14 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
             if (mConnectionState != CONNECTION_STATE_DISCONNECTED) {
 
                 if (!sendAsrMessage(new AsrMessage(AsrMessage.METHOD_RELEASE_SESSION, null, null))) {
-
                     Log.w(TAG, "error sending release session");
                 }
 
-                // Set Network Timeout
-                setNetworkTimeout();
-
                 mConnectionState = CONNECTION_STATE_WAITING_RELEASE_SESSION;
 
+                // Set Network Timeout
+                setNetworkTimeout();
             } else {
-
                 Message message = mRecognizer.obtainMessage();
                 message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_RELEASE_SESSION;
                 message.sendToTarget();
@@ -965,24 +929,20 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
             if (mConnectionState == CONNECTION_STATE_STREAMING_AUDIO) {
 
                 if (!sendAsrMessage(new AsrMessage(AsrMessage.METHOD_CANCEL_RECOGNITION, null, null))) {
-
                     Log.w(TAG, "error sending cancel recognition");
                 }
 
-                // Set Network Timeout
-                setNetworkTimeout();
-
                 mConnectionState = CONNECTION_STATE_WAITING_CANCEL_RECOGNITION;
 
+                // Set Network Timeout
+                setNetworkTimeout();
             } else {
-
                 Log.i(TAG, "ignoring cancel recognition to server handler message");
             }
 
         } else if (msg.arg1 == MESSAGE_HANDLE_AUDIO_PACKET) {
 
             // Handle incoming audio packet if thread is in correct state.
-
             if (mConnectionState == CONNECTION_STATE_IDLE
                     || mConnectionState == CONNECTION_STATE_DISCONNECTED
                     || mConnectionState == CONNECTION_STATE_WAITING_SERVER_HANDSHAKE
@@ -991,16 +951,11 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
                     || mConnectionState == CONNECTION_STATE_STREAMING_AUDIO) {
 
                 handleAudioPacket((byte[]) msg.obj, msg.arg2 == 1);
-
             } else {
-
                 Log.i(TAG, "ignoring handle audio packet handler message");
             }
 
         } else if (msg.arg1 == MESSAGE_ON_CPQD_ASR_LIBRARY_ERROR) {
-
-            // Remove network timeout.
-            removeMessages(WHAT_NETWORK_TIMEOUT);
 
             if (mConnectionState != CONNECTION_STATE_DISCONNECTED) {
                 mConnectionState = CONNECTION_STATE_IDLE;
@@ -1015,23 +970,27 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
                 if (!sendAsrMessage(new AsrMessage(AsrMessage.METHOD_START_INPUT_TIMERS, null, null))) {
                     Log.w(TAG, "error sending start input timers");
                 }
+
+                // Set Network Timeout
+                setNetworkTimeout();
             } else {
                 Log.i(TAG, "ignoring start input timers to server handler message");
             }
 
-        } else if (msg.arg1 == INTERNAL_MESSAGE_RESET_NETWORK_TIMEOUT) {
+        } else if (msg.arg1 == INTERNAL_MESSAGE_REMOVE_NETWORK_TIMEOUT) {
 
-            // Reset network timeout.
-
-            removeMessages(WHAT_NETWORK_TIMEOUT);
-
-            setNetworkTimeout();
+            // Remove the request timeout.
+            removeMessages(WHAT_REQUEST_TIMEOUT);
 
         } else if (msg.arg1 == INTERNAL_MESSAGE_SET_WEBSOCKET_SESSION) {
 
             // Set websocket session reference if thread is in correct state.
             if (mConnectionState == CONNECTION_STATE_WAITING_SERVER_HANDSHAKE) {
                 mWebsocketSession = (Session) msg.obj;
+
+                if (mNetworkTimeoutPeriod > 0) {
+                    mWebsocketSession.setMaxIdleTimeout(mNetworkTimeoutPeriod);
+                }
             } else {
                 Log.i(TAG, "ignoring set websocket session handler message");
             }
@@ -1057,11 +1016,19 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
                 Log.w(TAG, "unexpected websocket session close");
             }
 
-            mConnectionState = CONNECTION_STATE_DISCONNECTED;
+            // Reset the connection state
+            resetConnectionState(true, null);
+
+            RecognitionError recognitionError;
+            if (msg.obj != null) {
+                recognitionError = (RecognitionError) msg.obj;
+            } else {
+                recognitionError = new RecognitionError(RecognitionErrorCode.CONNECTION_FAILURE, "Connection closed");
+            }
 
             Message message = mRecognizer.obtainMessage();
             message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_ERROR;
-            message.obj = new RecognitionError(RecognitionErrorCode.CONNECTION_FAILURE, "Network error");
+            message.obj = recognitionError;
             message.sendToTarget();
 
         } else if (msg.arg1 == INTERNAL_MESSAGE_ON_WEBSOCKET_LIBRARY_ERROR) {
@@ -1093,20 +1060,26 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
 
                 Message message = mRecognizer.obtainMessage();
                 message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_ERROR;
-                message.obj = new RecognitionError(RecognitionErrorCode.CONNECTION_FAILURE, "Network error");
+                message.obj = new RecognitionError(RecognitionErrorCode.CONNECTION_FAILURE, "Connection error");
                 message.sendToTarget();
             }
 
         } else if (msg.arg1 == INTERNAL_MESSAGE_RAISE_NETWORK_TIMEOUT) {
 
-            // Raise network timeout, i.e.
-            // raise an error to the main handler.
+            // Reset the connection state with the not reponse
+            // the handshake message or the create session message
+            if (mConnectionState == CONNECTION_STATE_WAITING_SERVER_HANDSHAKE
+                    || mConnectionState == CONNECTION_STATE_WAITING_CREATE_SESSION) {
 
-            resetConnectionState(true, mNetworkTimeoutCloseReason);
+                resetConnectionState(true, mLibraryErrorCloseReason);
+            } else {
+                mConnectionState = CONNECTION_STATE_IDLE;
+            }
 
+            // Raise request timeout.
             Message message = mRecognizer.obtainMessage();
             message.arg1 = SpeechRecognizerImpl.MESSAGE_ON_ERROR;
-            message.obj = new RecognitionError(RecognitionErrorCode.SESSION_TIMEOUT, "Session timeout");
+            message.obj = new RecognitionError(RecognitionErrorCode.REQUEST_TIMEOUT, "Request timeout");
             message.sendToTarget();
 
         } else {
@@ -1142,7 +1115,7 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
         public void onOpen(Session session, EndpointConfig endpointConfig) {
 
             Message message = obtainMessage();
-            message.arg1 = INTERNAL_MESSAGE_RESET_NETWORK_TIMEOUT;
+            message.arg1 = INTERNAL_MESSAGE_REMOVE_NETWORK_TIMEOUT;
             message.sendToTarget();
 
             message = obtainMessage();
@@ -1165,14 +1138,19 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
         @OnClose
         public void onClose(Session session, CloseReason closeReason) {
 
+            Message message = obtainMessage();
+            message.arg1 = INTERNAL_MESSAGE_REMOVE_NETWORK_TIMEOUT;
+            message.sendToTarget();
+
             if (closeReason != null) {
                 String reason = closeReason.getReasonPhrase();
                 if (reason != null && !reason.contentEquals(LibraryErrorCloseReason.REASON_PHRASE)) {
 
-                    Log.w(TAG, "[AsrClientEndpoint - onClose] " + closeReason.toString());
+                    Log.i(TAG, "[AsrClientEndpoint - onClose] " + closeReason.toString());
 
-                    Message message = obtainMessage();
+                    message = obtainMessage();
                     message.arg1 = INTERNAL_MESSAGE_ON_CONNECTION_CLOSE;
+                    message.obj = new RecognitionError(RecognitionErrorCode.CONNECTION_FAILURE, reason);
                     message.sendToTarget();
                 }
             }
@@ -1208,10 +1186,6 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
         public void onMessage(Session session, AsrMessage asrMessage) {
 
             Message message = obtainMessage();
-            message.arg1 = INTERNAL_MESSAGE_RESET_NETWORK_TIMEOUT;
-            message.sendToTarget();
-
-            message = obtainMessage();
             message.arg1 = INTERNAL_MESSAGE_HANDLE_ASR_MESSAGE;
             message.obj = asrMessage;
             message.sendToTarget();
@@ -1257,13 +1231,9 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
             bytes.get(serializedMessage);
 
             AsrMessage asrMessage;
-
             try {
-
                 asrMessage = new AsrMessage(serializedMessage);
-
             } catch (IllegalArgumentException e) {
-
                 throw new DecodeException(bytes, "could not decode asr message", e);
             }
 
@@ -1286,39 +1256,6 @@ class AsrServerConnectionThread extends AbstractMessagingThread {
         @Override
         public void destroy() {
             // Not used
-        }
-    }
-
-    /**
-     * Network timeout {@link CloseReason}.
-     *
-     * @see #mNetworkTimeoutCloseReason
-     */
-    private static class NetworkTimeoutCloseReason extends CloseReason {
-
-        // Note that the status codes 4000-4999 should be used, as defined in
-        // http://tools.ietf.org/html/rfc6455#section-7.4.2
-
-        /**
-         * @see CloseCode#getCode()
-         */
-        private static final int CLOSE_CODE = 4001;
-
-        /**
-         * @see CloseReason#getReasonPhrase()
-         */
-        private static final String REASON_PHRASE = "network timeout";
-
-        private NetworkTimeoutCloseReason() {
-
-            super(new CloseCode() {
-
-                @Override
-                public int getCode() {
-
-                    return CLOSE_CODE;
-                }
-            }, REASON_PHRASE);
         }
     }
 
